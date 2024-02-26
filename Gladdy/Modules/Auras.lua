@@ -613,7 +613,6 @@ function Auras:AURA_GAIN(unit, auraType, spellID, spellName, icon, duration, exp
 	auraFrame.endTime = expirationTime
 	auraFrame.name = spellName
 	auraFrame.spellID = spellID
-	auraFrame.timeLeft = spellID == 8178 and 45 or expirationTime - GetTime()
 	auraFrame.priority = Gladdy.db.auraListDefault[tostring(self.auras[spellName].spellID)].priority
 	auraFrame.icon:SetTexture(Gladdy:GetImportantAuras()[GetSpellInfo(self.auras[spellName].spellID)] and Gladdy:GetImportantAuras()[GetSpellInfo(self.auras[spellName].spellID)].texture or icon)
 	auraFrame.track = auraType
@@ -627,7 +626,12 @@ function Auras:AURA_GAIN(unit, auraType, spellID, spellName, icon, duration, exp
 	else
 		auraFrame.icon.overlay:SetVertexColor(Gladdy.db.frameBorderColor.r, Gladdy.db.frameBorderColor.g, Gladdy.db.frameBorderColor.b, Gladdy.db.frameBorderColor.a)
 	end
-	if not Gladdy.db.auraDisableCircle and spellID ~= 8178 then
+
+	if spellID == 8178 then auraFrame.timeLeft = 45
+	elseif spellID == 50461 then auraFrame.timeLeft = 10
+	else auraFrame.timeLeft = expirationTime - GetTime() end
+
+	if not Gladdy.db.auraDisableCircle and spellID ~= 8178 and spellID ~= 50461 then
 		auraFrame.cooldown:Show()
 		auraFrame.cooldown:SetCooldown(auraFrame.startTime, duration)
 	else

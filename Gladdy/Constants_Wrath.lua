@@ -788,6 +788,12 @@ local importantAuras = {
 		magic = true,
 		spellID = 34709,
 	},
+	[GetSpellInfo(50461)] = { -- ЗОНА АНТИМАГИИ ЫЫЫ
+		track = AURA_TYPE_BUFF,
+		duration = 0,
+		priority = 15,
+		spellID = 50461,
+	},
 	[GetSpellInfo(8178)] = { -- Grounding Totem Effect
 		track = AURA_TYPE_BUFF,
 		duration = 0,
