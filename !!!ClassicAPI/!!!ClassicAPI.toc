@@ -1,0 +1,7 @@
+## Interface: 30300
+## Title: !!!ClassicAPI
+## Notes: Backport useful Blizzard Classic API functions/systems. - Author: |cff7f7fffTsoukie|r
+## Version: 1.1.19
+## Author: Tsoukie
+Lib\Load.xml
+Load.xml
