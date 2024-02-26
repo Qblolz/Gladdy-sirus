@@ -206,11 +206,10 @@ function EventListener:COMBAT_LOG_EVENT_UNFILTERED(...)
 			local button = Gladdy.buttons[srcUnit]
 			local constellation = button.constellation
 
-			if constellation and constellation.id == spellID then
+			if constellation and (constellation.id == spellID or (constellation.alt and constellation.alt[tostring(spellID)])) then
 				Gladdy:Debug("INFO", "UNIT_SPELLCAST_SUCCEEDED - RACIAL_USED", srcUnit, spellID)
 				Gladdy:SendMessage("RACIAL_USED", srcUnit)
 			end
-
 		end
 		if (eventType == "SPELL_AURA_REMOVED" and (spellID == 16188 or spellID == 17116 or spellID == 16166 or spellID == 12043) and Gladdy.buttons[srcUnit].class) then
 			Gladdy:Debug("INFO", "SPELL_AURA_REMOVED - CooldownUsed", srcUnit, "spellID:", spellID)
@@ -239,46 +238,46 @@ function EventListener:COMBAT_LOG_EVENT_UNFILTERED(...)
 end
 
 function EventListener:ARENA_OPPONENT_UPDATE(unit, updateReason)
-    --[[ updateReason: seen, unseen, destroyed, cleared ]]
+	--[[ updateReason: seen, unseen, destroyed, cleared ]]
 
-    unit = Gladdy:GetArenaUnit(unit)
-    local button = Gladdy.buttons[unit]
-    local pet = Gladdy.modules["Pets"].frames[unit]
-    Gladdy:Debug("INFO", "ARENA_OPPONENT_UPDATE", unit, updateReason)
-    if button or pet then
-        if updateReason == "seen" then
-            -- ENEMY_SPOTTED
-            if button then
-                button.stealthed = false
-                Gladdy:SendMessage("ENEMY_STEALTH", unit, false)
-                if not button.class or not button.race then
-                    Gladdy:SpotEnemy(unit, true)
-                end
-            end
-            if pet then
-                Gladdy:SendMessage("PET_SPOTTED", unit)
-            end
-        elseif updateReason == "unseen" then
-            -- STEALTH
-            if button then
-                button.stealthed = true
-                Gladdy:SendMessage("ENEMY_STEALTH", unit, true)
-            end
-            if pet then
-                Gladdy:SendMessage("PET_STEALTH", unit)
-            end
-        elseif updateReason == "destroyed" then
-            -- LEAVE
-            if button then
-                Gladdy:SendMessage("UNIT_DESTROYED", unit)
-            end
-            if pet then
-                Gladdy:SendMessage("PET_DESTROYED", unit)
-            end
-        elseif updateReason == "cleared" then
-            --Gladdy:Print("ARENA_OPPONENT_UPDATE", updateReason, unit)
-        end
-    end
+	unit = Gladdy:GetArenaUnit(unit)
+	local button = Gladdy.buttons[unit]
+	local pet = Gladdy.modules["Pets"].frames[unit]
+	Gladdy:Debug("INFO", "ARENA_OPPONENT_UPDATE", unit, updateReason)
+	if button or pet then
+		if updateReason == "seen" then
+			-- ENEMY_SPOTTED
+			if button then
+				button.stealthed = false
+				Gladdy:SendMessage("ENEMY_STEALTH", unit, false)
+				if not button.class or not button.race then
+					Gladdy:SpotEnemy(unit, true)
+				end
+			end
+			if pet then
+				Gladdy:SendMessage("PET_SPOTTED", unit)
+			end
+		elseif updateReason == "unseen" then
+			-- STEALTH
+			if button then
+				button.stealthed = true
+				Gladdy:SendMessage("ENEMY_STEALTH", unit, true)
+			end
+			if pet then
+				Gladdy:SendMessage("PET_STEALTH", unit)
+			end
+		elseif updateReason == "destroyed" then
+			-- LEAVE
+			if button then
+				Gladdy:SendMessage("UNIT_DESTROYED", unit)
+			end
+			if pet then
+				Gladdy:SendMessage("PET_DESTROYED", unit)
+			end
+		elseif updateReason == "cleared" then
+			--Gladdy:Print("ARENA_OPPONENT_UPDATE", updateReason, unit)
+		end
+	end
 end
 
 Gladdy.cooldownBuffs = {
