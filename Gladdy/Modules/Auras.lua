@@ -133,7 +133,7 @@ function Auras:CreateFrame(unit)
 			if (self.timeLeft <= 0) then
 				Auras:AURA_FADE(self.unit, self.track, true)
 			else
-				if self.spellID == 8178 then
+				if self.spellID == 8178 or self.spellID == 50461 then
 					self.text:SetText("")
 				else
 					Gladdy:FormatTimer(self.text, self.timeLeft, self.timeLeft < 10)
