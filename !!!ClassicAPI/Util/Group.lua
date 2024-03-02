@@ -38,7 +38,7 @@ end
 function UnitIsGroupLeader(unit)
 	local isLeader
 
-	if ( not IsInGroup() ) then
+	if ( not _IsInGroup() ) then
 		isLeader = false
 	elseif ( unit == "player" ) then
 		isLeader = IsInRaid() and IsRaidLeader() or IsPartyLeader()
