@@ -48,7 +48,7 @@ function VersionCheck.OnCommReceived(prefix, message, distribution, sender)
         else
             Gladdy:Warn("Current version", "\"".. addonVersion.."\"", "is outdated. Most recent version is", "\"".. message.."\"")
             Gladdy:Warn("Please download the latest Gladdy version at:")
-            Gladdy:Warn("https://gitlab.com/Tsoukie/gladdy-3.3.5")
+            Gladdy:Warn("https://github.com/Qblolz/Gladdy-sirus")
         end
     end
 end
