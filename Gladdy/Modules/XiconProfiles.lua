@@ -171,5 +171,24 @@ function XiconProfiles:GetOptions()
             width = "full",
             order = 17,
         },
+        headerProfileGladius = {
+            type = "header",
+            name = "Gladius " .. L["Profile"],
+            order = 18,
+        },
+        likeGladiusProfile = {
+            type = "execute",
+            func = function()
+                Gladdy.dbi:ResetProfile(Gladdy.dbi:GetCurrentProfile())
+                applyProfile(Gladdy:GetLikeGladius())
+            end,
+            name = " ",
+            desc = "Gladius default " .. L["Profile"],
+            image = "Interface\\AddOns\\Gladdy\\Images\\BasicProfiles\\gladius.blp",
+            imageWidth = 350,
+            imageHeight = 175,
+            width = "full",
+            order = 19,
+        },
     }
 end
