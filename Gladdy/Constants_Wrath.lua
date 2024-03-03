@@ -483,6 +483,11 @@ local importantAuras = {
 		priority = 40,
 		spellID = 31661,
 	},
+	[GetSpellInfo(10955)] = { -- Shackle Undead
+		track = AURA_TYPE_DEBUFF,
+		priority = 40,
+		spellID = 10955,
+	},
 
 	--- Silences
 	[GetSpellInfo(18469)] = { -- Improved Counterspell
