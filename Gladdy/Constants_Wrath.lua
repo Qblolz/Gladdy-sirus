@@ -926,7 +926,7 @@ local cooldownList = {
 		[54428] = 60, -- Divine Plea
 		[6940] = 120, -- Hand of Sacrifice
 		[64205] = 120, -- Divine Sacrifice
-		[10308] = { cd = 60, [L["Protection"]] = 40, }, -- Hammer of Justice
+		[10308] = { cd = 60, [L["Protection"]] = 40, [L["Retribution"]] = 40, }, -- Hammer of Justice
 		[642] = { cd = 300, -- Divine Shield
 				  sharedCD = {
 					  cd = 30,
