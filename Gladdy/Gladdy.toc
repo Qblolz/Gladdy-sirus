@@ -1,6 +1,6 @@
 ## Interface: 30300
 ## Title: Gladdy - WotLK
-## Version: 2.35.12
+## Version: 2.35.13
 ## Notes: The most powerful arena AddOn for WoW 3.3.5
 ## Author: XiconQoo, DnB_Junkee, Knall, Tsoukie
 ## SavedVariables: GladdyXZ
