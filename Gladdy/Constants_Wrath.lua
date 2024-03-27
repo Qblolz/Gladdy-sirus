@@ -938,6 +938,7 @@ local cooldownList = {
 						cd = 30,
 						[642] = true,
 					},
+					[L["Retribution"]] = 120,
 		},
 		[31821] = { cd = 120, spec = L["Holy"], }, -- Aura Mastery
 		[20066] = { cd = 60, spec = L["Retribution"], }, -- Repentance
