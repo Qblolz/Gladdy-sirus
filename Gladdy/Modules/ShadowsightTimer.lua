@@ -174,8 +174,8 @@ function ShadowsightTimer:CHAT_MSG_BG_SYSTEM_NEUTRAL(msg)
     for k,v in pairs(self.locale) do
         if str_find(msg, v) then
             if k == 0 then
-                self:Start(60, self.timerFrame1)
-                self:Start(60, self.timerFrame2)
+                self:Start(nil, self.timerFrame1)
+                self:Start(nil, self.timerFrame2)
             end
         end
     end
