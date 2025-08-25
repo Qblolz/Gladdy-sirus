@@ -1178,122 +1178,122 @@ function Gladdy:Racials()
 end
 
 local constellations = {
-	[371796] = {
-		id = 316231,
-		icon = select(3, GetSpellInfo(316231)),
-		cd = 120,
-	},
-	[371804] = {
-		id = 316380,
-		icon = select(3, GetSpellInfo(316380)),
-		cd = 120,
-	},
-	[371798] = {
-		id = 316413,
-		icon = select(3, GetSpellInfo(316413)),
-		cd = 90,
-	},
-	[371808] = {
-		id = 316455,
-		icon = select(3, GetSpellInfo(316455)),
-		cd = 90,
-	},
-	[371795] = {
-		id = 316393,
-		icon = select(3, GetSpellInfo(316393)),
-		cd = 120,
-	},
-	[371791] = {
-		id = 316279,
-		icon = select(3, GetSpellInfo(316279)),
-		cd = 120,
-	},
-	[371801] = {
-		id = 316372,
-		icon = select(3, GetSpellInfo(316372)),
-		cd = 90,
-	},
-	[371803] = {
-		id = 316294,
-		icon = select(3, GetSpellInfo(316294)),
-		cd = 90,
-	},
-	[371788] = { --синд
-		id = 316418,
-		alt = {["316421"] = 1, ["302387"] = 1, ["316419"] = 1, ["316420"] = 1},
-		icon = select(3, GetSpellInfo(316418)),
-		cd = 120,
-	},
-	[371805] = {
-		id = 316386,
-		icon = select(3, GetSpellInfo(316386)),
-		cd = 90,
-	},
-	[371806] = {
-		id = 316405,
-		icon = select(3, GetSpellInfo(316405)),
-		cd = 90,
-	},
-	[371800] = {
-		id = 316254,
-		icon = select(3, GetSpellInfo(316254)),
-		cd = 120,
-	},
-	[371802] = {
-		id = 316443,
-		icon = select(3, GetSpellInfo(316443)),
-		cd = 120,
-	},
-	[371792] = {
-		id = 316243,
-		icon = select(3, GetSpellInfo(316243)),
-		cd = 120,
-	},
-	[371794] = {
-		id = 316271,
-		icon = select(3, GetSpellInfo(316271)),
-		cd = 120,
-	},
-	[371809] = {
-		id = 316289,
-		icon = select(3, GetSpellInfo(316289)),
-		cd = 90,
-	},
-	[371799] = {
-		id = 316431,
-		icon = select(3, GetSpellInfo(316431)),
-		cd = 40,
-	},
-	[371807] = {
-		id = 316367,
-		icon = select(3, GetSpellInfo(316367)),
-		cd = 90,
-	},
-	[371789] = {
-		id = 316161,
-		icon = select(3, GetSpellInfo(316161)),
-		cd = 90,
-	},
-	[371793] = {
-		id = 316465,
-		icon = select(3, GetSpellInfo(316465)),
-		cd = 60,
-	},
-	[371810] = {
-		id = 310810,
-		icon = select(3, GetSpellInfo(310810)),
-		cd = 90,
-	},
-	[371797] = {
-		id = 319322,
-		icon = select(3, GetSpellInfo(319322)),
-		cd = 90,
-	},
-	[371790] = {
-		id = 320552,
-		icon = select(3, GetSpellInfo(320552)),
-		cd = 120,
-	}
+    [371796] = {
+        id = 375015,
+        icon = select(3, GetSpellInfo(375015)),
+        cd = 120,
+    },
+    [371804] = {
+        id = 374992,
+        icon = select(3, GetSpellInfo(374992)),
+        cd = 120,
+    },
+    [371798] = {
+        id = 374999,
+        icon = select(3, GetSpellInfo(374999)),
+        cd = 120,
+    },
+    [371808] = {
+        id = 375038,
+        icon = select(3, GetSpellInfo(375038)),
+        cd = 120,
+    },
+    [371795] = {
+        id = 374997,
+        icon = select(3, GetSpellInfo(374997)),
+        cd = 120,
+    },
+    [371791] = {
+        id = 375020,
+        icon = select(3, GetSpellInfo(375020)),
+        cd = 120,
+    },
+    [371801] = {
+        id = 374988,
+        icon = select(3, GetSpellInfo(374988)),
+        cd = 120,
+    },
+    [371803] = {
+        id = 375024,
+        icon = select(3, GetSpellInfo(375024)),
+        cd = 120,
+    },
+    [371788] = { --синд
+        id = 375001,
+        alt = {["316421"] = 1, ["302387"] = 1, ["316419"] = 1, ["316420"] = 1},
+        icon = select(3, GetSpellInfo(316418)),
+        cd = 120,
+    },
+    [371805] = {
+        id = 374994,
+        icon = select(3, GetSpellInfo(316386)),
+        cd = 120,
+    },
+    [371806] = {
+        id = 374996,
+        icon = select(3, GetSpellInfo(374996)),
+        cd = 120,
+    },
+    [371800] = {
+        id = 375018,
+        icon = select(3, GetSpellInfo(316254)),
+        cd = 120,
+    },
+    [371802] = {
+        id = 375035,
+        icon = select(3, GetSpellInfo(375035)),
+        cd = 120,
+    },
+    [371792] = {
+        id = 375016,
+        icon = select(3, GetSpellInfo(375016)),
+        cd = 120,
+    },
+    [371794] = {
+        id = 375019,
+        icon = select(3, GetSpellInfo(375019)),
+        cd = 120,
+    },
+    [371809] = {
+        id = 375022,
+        icon = select(3, GetSpellInfo(375022)),
+        cd = 120,
+    },
+    [371799] = {
+        id = 375006,
+        icon = select(3, GetSpellInfo(375006)),
+        cd = 120,
+    },
+    [371807] = {
+        id = 375026,
+        icon = select(3, GetSpellInfo(375026)),
+        cd = 120,
+    },
+    [371789] = {
+        id = 375029,
+        icon = select(3, GetSpellInfo(375029)),
+        cd = 120,
+    },
+    [371793] = {
+        id = 375010,
+        icon = select(3, GetSpellInfo(375010)),
+        cd = 120,
+    },
+    [371810] = {
+        id = 375013,
+        icon = select(3, GetSpellInfo(375013)),
+        cd = 120,
+    },
+    [371797] = {
+        id = 319322,
+        icon = select(3, GetSpellInfo(319322)),
+        cd = 120,
+    },
+    [371790] = {
+        id = 375040,
+        icon = select(3, GetSpellInfo(375040)),
+        cd = 120,
+    },
 }
 
 function Gladdy:Constellations()
