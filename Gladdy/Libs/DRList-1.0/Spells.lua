@@ -64,8 +64,10 @@ if Lib.gameExpansion == "wotlk" then
         [67769] = "incapacitate", -- Cobalt Frag Bomb
         [67890] = "incapacitate", -- Cobalt Frag Bomb (Frag Belt)
         [54466] = "incapacitate", -- Saronite Grenade
-        [316443] = "incapacitate", --panda
 
+        [375039] = "stun", --stun
+        [374994] = "stun", --stun
+        [375010] = "stun", --stun
         [47481] = "stun", -- Gnaw (Ghoul Pet)
         [5211]  = "stun", -- Bash (Rank 1)
         [6798]  = "stun", -- Bash (Rank 2)
@@ -116,9 +118,6 @@ if Lib.gameExpansion == "wotlk" then
         [25274] = "stun", -- Intercept Stun (Rank 5)
         [46968] = "stun", -- Shockwave
         [20549] = "stun", -- War Stomp (Racial)
-        [316161] = "stun", -- DarkIronDwarf
-        [316455] = "stun", -- Vulpera Stun
-        [316386] = "stun", -- War Stomp
 
         [16922]   = "random_stun",  -- Celestial Focus (Starfire Stun)
         [28445]   = "random_stun",  -- Improved Concussive Shot
@@ -219,11 +218,7 @@ if Lib.gameExpansion == "wotlk" then
         [50613] = "silence", -- Arcane Torrent (Racial, Runic Power)
         [28730] = "silence", -- Arcane Torrent (Racial, Mana)
         [25046] = "silence", -- Arcane Torrent (Racial, Energy)
-        [316418] = "silence", -- Arcane Torrent (Energy version)
-        [316421] = "silence", -- Arcane Torrent (Mana version)
-        [302387] = "silence", -- Arcane Torrent (Runic power version)
-        [316419] = "silence", -- Arcane Torrent
-        [316420] = "silence", -- Arcane Torrent
+        [375001] = "silence", -- Arcane Torrent
 
         [64044] = "horror", -- Psychic Horror
         [6789]  = "horror", -- Death Coil (Rank 1)
