@@ -441,7 +441,7 @@ function EventListener:UNIT_SPELLCAST_SUCCEEDED(...)
 		end
 
         -- racial
-        if spellID == 375040 or spellID == 374994 or spellID == 375010 then
+        if spellID == GetSpellInfo(375040) or spellID == GetSpellInfo(374994) or spellID == GetSpellInfo(375010) then
             Gladdy:Debug("INFO", "UNIT_SPELLCAST_SUCCEEDED - RACIAL_USED", unit, spellID)
             Gladdy:SendMessage("RACIAL_USED", unit)
         end
