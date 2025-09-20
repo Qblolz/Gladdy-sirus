@@ -280,17 +280,6 @@ local importantAuras = {
 		spellID = 14327,
 	},
 
-	--- Roots
-	[GetSpellInfo(319322)] = {
-		track = AURA_TYPE_DEBUFF,
-		priority = 30,
-		spellID = 319322,
-	},
-	[GetSpellInfo(316455)] = {
-		track = AURA_TYPE_DEBUFF,
-		priority = 15,
-		spellID = 316455,
-	},
 	-- Entangling Roots
 	[GetSpellInfo(26989)] = {
 		track = AURA_TYPE_DEBUFF,
@@ -340,26 +329,6 @@ local importantAuras = {
 	},
 
 	--- Stuns and incapacitates
-	[GetSpellInfo(316456)] = {
-		track = AURA_TYPE_DEBUFF,
-		priority = 40,
-		spellID = 316456,
-	},
-	[GetSpellInfo(316443)] = {
-		track = AURA_TYPE_DEBUFF,
-		priority = 40,
-		spellID = 316443,
-	},
-	[GetSpellInfo(316161)] = {
-		track = AURA_TYPE_DEBUFF,
-		priority = 40,
-		spellID = 316161,
-	},
-	[GetSpellInfo(316386)] = {
-		track = AURA_TYPE_DEBUFF,
-		priority = 40,
-		spellID = 316386,
-	},
 	[GetSpellInfo(8983)] = { -- Bash
 		track = AURA_TYPE_DEBUFF,
 		priority = 40,
@@ -536,31 +505,6 @@ local importantAuras = {
 		priority = 20,
 		spellID = 24259,
 	},
-	[GetSpellInfo(316421)] = { -- Arcane Torrent
-		track = AURA_TYPE_DEBUFF,
-		priority = 20,
-		spellID = 316421,
-	},
-	[GetSpellInfo(302387)] = { -- Arcane Torrent
-		track = AURA_TYPE_DEBUFF,
-		priority = 20,
-		spellID = 302387,
-	},
-	[GetSpellInfo(316418)] = { -- Arcane Torrent
-		track = AURA_TYPE_DEBUFF,
-		priority = 20,
-		spellID = 316418,
-	},
-	[GetSpellInfo(316419)] = { -- Arcane Torrent
-		track = AURA_TYPE_DEBUFF,
-		priority = 20,
-		spellID = 316419,
-	},
-	[GetSpellInfo(316420)] = { -- Arcane Torrent
-		track = AURA_TYPE_DEBUFF,
-		priority = 20,
-		spellID = 316420,
-	},
 	[GetSpellInfo(1330)] = { -- Garrote - Silence
 		track = AURA_TYPE_DEBUFF,
 		priority = 20,
@@ -682,11 +626,6 @@ local importantAuras = {
 	},
 
 	--- Turtling abilities
-	[GetSpellInfo(316255)] = { -- after Meld
-		track = AURA_TYPE_BUFF,
-		priority = 25,
-		spellID = 316255,
-	},
 	[GetSpellInfo(871)] = { -- Shield Wall
 		track = AURA_TYPE_BUFF,
 		priority = 25,
@@ -753,36 +692,6 @@ local importantAuras = {
 		track = AURA_TYPE_BUFF,
 		priority = 15,
 		spellID = 49039,
-	},
-	[GetSpellInfo(316243)] = {
-		track = AURA_TYPE_BUFF,
-		priority = 15,
-		spellID = 316243,
-	},
-	[GetSpellInfo(316271)] = {
-		track = AURA_TYPE_BUFF,
-		priority = 15,
-		spellID = 316271,
-	},
-	[GetSpellInfo(316294)] = {
-		track = AURA_TYPE_BUFF,
-		priority = 15,
-		spellID = 316294,
-	},
-	[GetSpellInfo(316372)] = {
-		track = AURA_TYPE_BUFF,
-		priority = 15,
-		spellID = 316372,
-	},
-	[GetSpellInfo(316405)] = {
-		track = AURA_TYPE_BUFF,
-		priority = 15,
-		spellID = 316405,
-	},
-	[GetSpellInfo(316413)] = {
-		track = AURA_TYPE_BUFF,
-		priority = 15,
-		spellID = 316413,
 	},
 
 	--- Alt Stuff
