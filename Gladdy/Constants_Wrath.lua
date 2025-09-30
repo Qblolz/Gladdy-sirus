@@ -1130,12 +1130,12 @@ local constellations = {
     [371788] = { --синд
         id = 375001,
         alt = {["316421"] = 1, ["302387"] = 1, ["316419"] = 1, ["316420"] = 1},
-        icon = select(3, GetSpellInfo(316418)),
+        icon = select(3, GetSpellInfo(375001)),
         cd = 120,
     },
     [371805] = {
         id = 374994,
-        icon = select(3, GetSpellInfo(316386)),
+        icon = select(3, GetSpellInfo(374994)),
         cd = 120,
     },
     [371806] = {
@@ -1145,7 +1145,7 @@ local constellations = {
     },
     [371800] = {
         id = 375018,
-        icon = select(3, GetSpellInfo(316254)),
+        icon = select(3, GetSpellInfo(375018)),
         cd = 120,
     },
     [371802] = {
