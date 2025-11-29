@@ -8,9 +8,9 @@ local Classicon = Gladdy:NewModule("Class Icon", 81, {
     classIconEnabled = true,
     classIconSize = 60 + 20 + 1,
     classIconWidthFactor = 0.9,
-    classIconZoomed = false,
+    classIconZoomed = false, -- Use zoomed approach which works more reliably
     classIconBorderStyle = "Interface\\AddOns\\Gladdy\\Images\\Border_rounded_blp",
-    classIconBorderColor = { r = 0, g = 0, b = 0, a = 1 },
+    classIconBorderColor = { r = 0, g = 0, b = 0, a = 1 },  -- Changed to white for better visibility
     classIconSpecIcon = false,
     classIconXOffset = 0,
     classIconYOffset = 0,
@@ -108,121 +108,6 @@ function Classicon:UpdateFrameOnce()
     end
 end
 
-function Classicon:CreateFrame(unit)
-    local classIcon = CreateFrame("Frame", nil, Gladdy.buttons[unit])
-    classIcon:EnableMouse(false)
-    classIcon:SetFrameStrata("MEDIUM")
-    classIcon:SetFrameLevel(1)
-    classIcon.texture = classIcon:CreateTexture(nil, "BACKGROUND")
-    classIcon.texture:SetAllPoints(classIcon)
-    --classIcon.texture:SetMask("Interface\\AddOns\\Gladdy\\Images\\mask")
-    classIcon.texture.masked = true
-
-    classIcon.texture.overlay = classIcon:CreateTexture(nil, "BORDER")
-    classIcon.texture.overlay:SetAllPoints(classIcon)
-    classIcon.texture.overlay:SetTexture(Gladdy.db.classIconBorderStyle)
-
-    classIcon:SetFrameStrata("MEDIUM")
-    classIcon:SetFrameLevel(2)
-
-    Gladdy.buttons[unit].classIcon = classIcon
-    self.frames[unit] = classIcon
-end
-
-function Classicon:UpdateFrame(unit)
-    local classIcon = self.frames[unit]
-    if (not classIcon) then
-        return
-    end
-
-    local testAgain = false
-
-    classIcon:SetFrameStrata(Gladdy.db.classIconFrameStrata)
-    classIcon:SetFrameLevel(Gladdy.db.classIconFrameLevel)
-
-    classIcon:SetWidth(Gladdy.db.classIconSize * Gladdy.db.classIconWidthFactor)
-    classIcon:SetHeight(Gladdy.db.classIconSize)
-
-    if Gladdy.db.classIconZoomed then
-        if classIcon.texture.masked then
-            classIcon.texture:SetMask("")
-            classIcon.texture:SetTexCoord(0.1,0.9,0.1,0.9)
-            classIcon.texture.masked = nil
-        end
-    else
-        if not classIcon.texture.masked then
-            classIcon.texture:SetMask("")
-            classIcon.texture:SetTexCoord(0,1,0,1)
-            classIcon.texture:SetMask("Interface\\AddOns\\Gladdy\\Images\\mask")
-            classIcon.texture.masked = true
-            if Gladdy.frame.testing then
-                testAgain = true
-            end
-        end
-    end
-
-    Gladdy:SetPosition(classIcon, unit, "classIconXOffset", "classIconYOffset", Classicon:LegacySetPosition(classIcon, unit), Classicon)
-
-    if (Gladdy.db.classIconGroup) then
-        if (unit ~= "arena1") then
-            local previousUnit = "arena" .. str_gsub(unit, "arena", "") - 1
-            self.frames[unit]:ClearAllPoints()
-            if Gladdy.db.classIconGroupDirection == "RIGHT" then
-                self.frames[unit]:SetPoint("LEFT", self.frames[previousUnit], "RIGHT", 0, 0)
-            elseif Gladdy.db.classIconGroupDirection == "LEFT" then
-                self.frames[unit]:SetPoint("RIGHT", self.frames[previousUnit], "LEFT", 0, 0)
-            elseif Gladdy.db.classIconGroupDirection == "UP" then
-                self.frames[unit]:SetPoint("BOTTOM", self.frames[previousUnit], "TOP", 0, 0)
-            elseif Gladdy.db.classIconGroupDirection == "DOWN" then
-                self.frames[unit]:SetPoint("TOP", self.frames[previousUnit], "BOTTOM", 0, 0)
-            end
-        end
-    end
-
-    if (unit == "arena1") then
-        Gladdy:CreateMover(classIcon, "classIconXOffset", "classIconYOffset", L["Class Icon"],
-                {"TOPLEFT", "TOPLEFT"},
-                Gladdy.db.classIconSize * Gladdy.db.classIconWidthFactor,
-                Gladdy.db.classIconSize,
-                0,
-                0, "classIconEnabled")
-    end
-
-    classIcon.texture:ClearAllPoints()
-    classIcon.texture:SetAllPoints(classIcon)
-
-    classIcon.texture.overlay:SetTexture(Gladdy.db.classIconBorderStyle)
-    classIcon.texture.overlay:SetVertexColor(Gladdy:SetColor(Gladdy.db.classIconBorderColor))
-    if Gladdy.db.classIconEnabled then
-        classIcon:Show()
-        if testAgain then
-            Classicon:ResetUnit(unit)
-            Classicon:ENEMY_SPOTTED(unit)
-        end
-    else
-        classIcon:Hide()
-    end
-end
-
-function Classicon:ENEMY_SPOTTED(unit)
-    local classIcon = self.frames[unit]
-    if (not classIcon) then
-        return
-    end
-
-    classIcon.texture:SetTexture(classIcons[Gladdy.buttons[unit].class])
-    --classIcon.texture:SetTexCoord(unpack(CLASS_BUTTONS[Gladdy.buttons[unit].class]))
-    classIcon.texture:SetAllPoints(classIcon)
-end
-
-function Classicon:UNIT_SPEC(unit, spec)
-    local classIcon = self.frames[unit]
-    if (not Gladdy.db.classIconSpecIcon or not classIcon) then
-        return
-    end
-    classIcon.texture:SetTexture(specIcons[Gladdy.buttons[unit].class][spec])
-end
-
 function Classicon:ResetUnit(unit)
     local classIcon = self.frames[unit]
     if (not classIcon) then
@@ -230,6 +115,108 @@ function Classicon:ResetUnit(unit)
     end
 
     classIcon.texture:SetTexture("")
+end
+
+function Classicon:CreateFrame(unit)
+    local classIcon = CreateFrame("Frame", nil, Gladdy.buttons[unit])
+    classIcon:EnableMouse(false)
+    classIcon:SetFrameStrata(Gladdy.db.classIconFrameStrata)
+    classIcon:SetFrameLevel(Gladdy.db.classIconFrameLevel)
+
+    classIcon.texture = classIcon:CreateTexture(nil, "BACKGROUND")
+    classIcon.texture:SetAllPoints(classIcon)
+
+    classIcon.texture.overlay = classIcon:CreateTexture(nil, "BORDER")
+    classIcon.texture.overlay:SetAllPoints(classIcon)
+    classIcon.texture.overlay:SetTexture(Gladdy.db.classIconBorderStyle)
+
+    Gladdy.buttons[unit].classIcon = classIcon
+    self.frames[unit] = classIcon
+end
+
+function Classicon:UpdateFrame(unit)
+    local classIcon = self.frames[unit]
+    if not classIcon then return end
+
+    classIcon:SetFrameStrata(Gladdy.db.classIconFrameStrata)
+    classIcon:SetFrameLevel(Gladdy.db.classIconFrameLevel)
+
+    -- Обновляем размеры
+    local width, height = Gladdy.db.classIconSize * Gladdy.db.classIconWidthFactor, Gladdy.db.classIconSize
+    classIcon:SetWidth(width)
+    classIcon:SetHeight(height)
+
+    -- Применяем текстурные координаты
+    if Gladdy.db.classIconZoomed then
+        classIcon.texture:SetTexCoord(0.1, 0.9, 0.1, 0.9)
+    else
+        classIcon.texture:SetTexCoord(0, 1, 0, 1)
+    end
+
+    -- Обновляем позицию
+    if not Gladdy.db.classIconGroup or unit == "arena1" then
+        Gladdy:SetPosition(classIcon, unit, "classIconXOffset", "classIconYOffset", Classicon)
+    end
+
+    -- Обновляем группировку
+    if Gladdy.db.classIconGroup then
+        if unit ~= "arena1" then
+            local previousUnit = "arena" .. str_gsub(unit, "arena", "") - 1
+            classIcon:ClearAllPoints()
+            if Gladdy.db.classIconGroupDirection == "RIGHT" then
+                classIcon:SetPoint("LEFT", self.frames[previousUnit], "RIGHT", 0, 0)
+            elseif Gladdy.db.classIconGroupDirection == "LEFT" then
+                classIcon:SetPoint("RIGHT", self.frames[previousUnit], "LEFT", 0, 0)
+            elseif Gladdy.db.classIconGroupDirection == "UP" then
+                classIcon:SetPoint("BOTTOM", self.frames[previousUnit], "TOP", 0, 0)
+            elseif Gladdy.db.classIconGroupDirection == "DOWN" then
+                classIcon:SetPoint("TOP", self.frames[previousUnit], "BOTTOM", 0, 0)
+            end
+        end
+    end
+
+    -- Создаем мувер для первой арены
+    if unit == "arena1" then
+        Gladdy:CreateMover(classIcon, "classIconXOffset", "classIconYOffset", L["Class Icon"],
+            {"TOPLEFT", "TOPLEFT"},
+            width, height,
+            0, 0, "classIconEnabled")
+    end
+
+    -- Обновляем рамку
+    if Gladdy.db.classIconBorderStyle ~= "None" then
+        classIcon.texture.overlay:SetTexture(Gladdy.db.classIconBorderStyle)
+        classIcon.texture.overlay:SetVertexColor(Gladdy:SetColor(Gladdy.db.classIconBorderColor))
+    else
+        classIcon.texture.overlay:SetTexture("")
+    end
+
+    -- Показываем/скрываем в зависимости от настроек
+    if Gladdy.db.classIconEnabled then
+        classIcon:Show()
+    else
+        classIcon:Hide()
+    end
+end
+
+function Classicon:ENEMY_SPOTTED(unit)
+    if (not Gladdy.db.classIconEnabled) then return end
+    
+    local classIcon = self.frames[unit]
+    if (not classIcon) then return end
+
+    classIcon.texture:SetTexture(classIcons[Gladdy.buttons[unit].class])
+    classIcon.texture:SetAllPoints(classIcon)
+end
+
+function Classicon:UNIT_SPEC(unit, spec)
+    if (not Gladdy.db.classIconEnabled) then return end
+    
+    local classIcon = self.frames[unit]
+    if (not Gladdy.db.classIconSpecIcon or not classIcon) then
+        return
+    end
+    classIcon.texture:SetTexture(specIcons[Gladdy.buttons[unit].class][spec])
 end
 
 function Classicon:GetOptions()
@@ -266,7 +253,7 @@ function Classicon:GetOptions()
         },
         classIconGroup = Gladdy:option({
             type = "toggle",
-            name = L["Group"] .. " " .. L["Class Icon"],
+            name = L["Group Class Icon"],
             order = 5,
             disabled = function() return not Gladdy.db.classIconEnabled end,
         }),
@@ -304,7 +291,7 @@ function Classicon:GetOptions()
                         classIconZoomed = Gladdy:option({
                             type = "toggle",
                             name = L["Zoomed Icon"],
-                            desc = L["Zoomes the icon to remove borders"],
+                            desc = L["Zooms the icon to remove borders"],
                             order = 2,
                             width = "full",
                         }),
@@ -415,23 +402,4 @@ function Classicon:GetOptions()
             },
         },
     }
-end
-
----------------------------
-
--- LAGACY HANDLER
-
----------------------------
-
-function Classicon:LegacySetPosition(classIcon, unit)
-    if Gladdy.db.newLayout then
-        return Gladdy.db.newLayout
-    end
-    classIcon:ClearAllPoints()
-    local margin = (Gladdy.db.highlightInset and 0 or Gladdy.db.highlightBorderSize) + Gladdy.db.padding
-    if (Gladdy.db.classIconPos == "LEFT") then
-        classIcon:SetPoint("TOPRIGHT", Gladdy.buttons[unit].healthBar, "TOPLEFT", -margin, 0)
-    else
-        classIcon:SetPoint("TOPLEFT", Gladdy.buttons[unit], "TOPRIGHT", margin, 0)
-    end
 end

@@ -2,7 +2,6 @@ local pairs = pairs
 local floor = math.floor
 
 local CreateFrame, UnitPower, UnitPowerType, UnitPowerMax, UnitExists = CreateFrame, UnitPower, UnitPowerType, UnitPowerMax, UnitExists
-local C_Timer = C_Timer
 
 local Gladdy = LibStub("Gladdy")
 local L = Gladdy.L
@@ -326,9 +325,9 @@ function Powerbar:UNIT_DEATH(unit)
     end
     Powerbar:SetPower(powerBar, unit, 0, powerBar.energy.max, powerBar.energy.powerType, L["DEAD"])
 
-    C_Timer:After(0.2,function()
+    Gladdy:ScheduleTimer(function()
         Powerbar:ENEMY_SPOTTED(unit)
-    end)
+    end, 0.2)
 end
 
 local function option(params)

@@ -9,11 +9,8 @@ LibClassAuras.buffs = {}
 LibClassAuras.buffToId = {}
 LibClassAuras.altNames = {}
 
-LibClassAuras.gameExpansion = ({
-    [WOW_PROJECT_MAINLINE] = "retail",
-    [WOW_PROJECT_CLASSIC] = "classic",
-    [WOW_PROJECT_BURNING_CRUSADE_CLASSIC or 5] = "tbc"
-})[WOW_PROJECT_ID]
+-- Определяем версию игры для Classic WoW
+LibClassAuras.gameExpansion = "retail" -- 3.3.5 a.k.a. WOTLK (retail)
 
 local function Spell(id, opts, class, spellTable, idTable)
     if not opts or not class then

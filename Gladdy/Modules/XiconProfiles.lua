@@ -9,12 +9,50 @@ local function applyProfile(profileString)
     if deserialized then
         Gladdy.modules["Export Import"]:ApplyImport(deserialized, Gladdy.db)
     end
+    
+    -- Ensure testing flag is set to trigger proper visual updates
+    if Gladdy.frame then
+        Gladdy.frame.testing = true
+    end
+    
+    -- Reset Gladdy
     Gladdy:Reset()
     Gladdy:HideFrame()
     Gladdy:ToggleFrame(3)
+    
+    -- Update UI elements
     Gladdy.options.args.lock.name = Gladdy.db.locked and L["Unlock frame"] or L["Lock frame"]
     Gladdy.options.args.showMover.name = Gladdy.db.showMover and L["Hide Mover"] or L["Show Mover"]
+    
+    -- Notify config registry
     LibStub("AceConfigRegistry-3.0"):NotifyChange("Gladdy")
+    
+    -- Send explicit profile changed message
+    Gladdy:SendMessage("GLADDY_PROFILE_CHANGED")
+    
+    -- Force update all modules, especially problematic ones like Trinket
+    for unit, button in pairs(Gladdy.buttons) do
+        -- Force update Trinket if it exists
+        if Gladdy.modules["Trinket"] and Gladdy.modules["Trinket"].frames and Gladdy.modules["Trinket"].frames[unit] then
+            -- Use true to force full visual update including borders
+            Gladdy.modules["Trinket"]:ForceUpdate(unit, true)
+            
+            -- Force cooldown to be visible for testing
+            if unit == "arena1" or unit == "arena2" then
+                Gladdy:SendMessage("TRINKET_USED", unit)
+            end
+        end
+    end
+    
+    -- Call Test on each module to ensure proper visual state
+    for _, module in Gladdy:IterModules() do
+        if module.Test then
+            for i=1, math.min(2, Gladdy.curBracket or 3) do
+                local unit = "arena" .. i
+                module:Test(unit)
+            end
+        end
+    end
 end
 
 function XiconProfiles:GetOptions()
@@ -181,6 +219,19 @@ function XiconProfiles:GetOptions()
             func = function()
                 Gladdy.dbi:ResetProfile(Gladdy.dbi:GetCurrentProfile())
                 applyProfile(Gladdy:GetLikeGladius())
+                
+                -- Special handling for Gladius profile to ensure trinket visuals update properly
+                if Gladdy.modules["Trinket"] then
+                    -- Force all units to update
+                    for unit, button in pairs(Gladdy.buttons) do
+                        if Gladdy.modules["Trinket"].frames and Gladdy.modules["Trinket"].frames[unit] then
+                            -- Simulate trinket on cooldown
+                            if Gladdy.frame and Gladdy.frame.testing then
+                                Gladdy:SendMessage("TRINKET_USED", unit)
+                            end
+                        end
+                    end
+                end
             end,
             name = " ",
             desc = "Gladius default " .. L["Profile"],

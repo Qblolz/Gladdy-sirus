@@ -21,6 +21,51 @@ local PREFIX = "Gladdy v"
 local VERSION_REGEX = PREFIX .. "(%d+%.%d+)%-(%a)"
 local LibStub = LibStub
 
+-- Add safe C_CreatureInfo getters to avoid errors when ClassicAPI isn't loaded
+if not C_CreatureInfo then
+    C_CreatureInfo = {}
+end
+
+if not C_CreatureInfo._GetClassInfo then
+    C_CreatureInfo._GetClassInfo = function(classID)
+        local classData = {
+            [1] = { className = "Warrior", classFile = "WARRIOR" },
+            [2] = { className = "Paladin", classFile = "PALADIN" },
+            [3] = { className = "Hunter", classFile = "HUNTER" },
+            [4] = { className = "Rogue", classFile = "ROGUE" },
+            [5] = { className = "Priest", classFile = "PRIEST" },
+            [6] = { className = "Death Knight", classFile = "DEATHKNIGHT" },
+            [7] = { className = "Shaman", classFile = "SHAMAN" },
+            [8] = { className = "Mage", classFile = "MAGE" },
+            [9] = { className = "Warlock", classFile = "WARLOCK" },
+            [11] = { className = "Druid", classFile = "DRUID" },
+        }
+        local info = classData[classID]
+        if info then
+            info.classID = classID
+        end
+        return info
+    end
+end
+
+if not C_CreatureInfo._GetRaceInfo then
+    C_CreatureInfo._GetRaceInfo = function(raceID)
+        local raceData = {
+            [1] = { raceName = "Human", clientFileString = "Human" },
+            [2] = { raceName = "Orc", clientFileString = "Orc" },
+            [3] = { raceName = "Dwarf", clientFileString = "Dwarf" },
+            [4] = { raceName = "Night Elf", clientFileString = "NightElf" },
+            [5] = { raceName = "Undead", clientFileString = "Scourge" },
+            [6] = { raceName = "Tauren", clientFileString = "Tauren" },
+            [7] = { raceName = "Gnome", clientFileString = "Gnome" },
+            [8] = { raceName = "Troll", clientFileString = "Troll" },
+            [10] = { raceName = "Blood Elf", clientFileString = "BloodElf" },
+            [11] = { raceName = "Draenei", clientFileString = "Draenei" },
+        }
+        return raceData[raceID]
+    end
+end
+
 ---------------------------
 
 -- CORE
@@ -29,15 +74,27 @@ local LibStub = LibStub
 
 local MAJOR, MINOR = "Gladdy", 11
 local Gladdy = LibStub:NewLibrary(MAJOR, MINOR)
-local L
+local L = {}
+Gladdy.L = L  -- Initialize Gladdy.L early
 Gladdy.version_major_num = 2
-Gladdy.version_minor_num = 0.35
+Gladdy.version_minor_num = 0.36
 Gladdy.version_num = Gladdy.version_major_num + Gladdy.version_minor_num
 Gladdy.version_releaseType = RELEASE_TYPES.release
 Gladdy.version = PREFIX .. string.format("%.2f", Gladdy.version_num) .. "-" .. Gladdy.version_releaseType
 Gladdy.VERSION_REGEX = VERSION_REGEX
 
 Gladdy.debug = false
+
+-- Константы для уровней логирования
+Gladdy.LOG_LEVELS = {
+    ERROR = 1,
+    WARN = 2,
+    INFO = 3,
+    DEBUG = 4
+}
+
+-- Текущий уровень логирования (по умолчанию INFO)
+Gladdy.logLevel = Gladdy.LOG_LEVELS.INFO
 
 LibStub("AceTimer-3.0"):Embed(Gladdy)
 LibStub("AceComm-3.0"):Embed(Gladdy)
@@ -82,15 +139,21 @@ function Gladdy:Error(...)
 end
 
 function Gladdy:Debug(lvl, ...)
-	if Gladdy.debug then
-		if lvl == "INFO" then
-			Gladdy:Print("[INFO]", ...)
-		elseif lvl == "WARN" then
-			Gladdy:Warn("[WARN]", ...)
-		elseif lvl == "ERROR" then
-			Gladdy:Error("[ERROR]", ...)
-		end
-	end
+    if not Gladdy.debug then return end
+    
+    -- Проверяем уровень логирования
+    local level = Gladdy.LOG_LEVELS[lvl] or 0
+    if level > Gladdy.logLevel then return end
+    
+    if lvl == "INFO" then
+        Gladdy:Print("[INFO]", ...)
+    elseif lvl == "WARN" then
+        Gladdy:Warn("[WARN]", ...)
+    elseif lvl == "ERROR" then
+        Gladdy:Error("[ERROR]", ...)
+    elseif lvl == "DEBUG" then
+        Gladdy:Print("[DEBUG]", ...)
+    end
 end
 
 Gladdy.events = CreateFrame("Frame")
@@ -174,6 +237,7 @@ function Gladdy:Call(module, func, ...)
 		module[func](module, ...)
 	end
 end
+
 function Gladdy:SendMessage(message, ...)
 	for _, module in self:IterModules() do
 		self:Call(module, module.messages[message], ...)
@@ -275,6 +339,12 @@ function Gladdy:OnInitialize()
 	self.dbi.RegisterCallback(self, "OnProfileReset", "OnProfileReset")
 	self.db = self.dbi.profile
 
+	-- Применяем локализацию после загрузки настроек
+	self:ApplyLocalization()
+
+	-- Инициализируем таблицу обработчиков сообщений
+	self.messageHandlers = {}
+
 	self.LSM = LibStub("LibSharedMedia-3.0")
 	self.LSM:Register("statusbar", "Gloss", "Interface\\AddOns\\Gladdy\\Images\\Gloss")
 	self.LSM:Register("statusbar", "Smooth", "Interface\\AddOns\\Gladdy\\Images\\Smooth")
@@ -283,10 +353,72 @@ function Gladdy:OnInitialize()
 	self.LSM:Register("statusbar", "Flat", "Interface\\AddOns\\Gladdy\\Images\\UI-StatusBar")
 	self.LSM:Register("border", "Gladdy Tooltip round", "Interface\\AddOns\\Gladdy\\Images\\UI-Tooltip-Border_round_selfmade")
 	self.LSM:Register("border", "Gladdy Tooltip squared", "Interface\\AddOns\\Gladdy\\Images\\UI-Tooltip-Border_square_selfmade")
+	self.LSM:Register("border", "Border_Gloss", "Interface\\AddOns\\Gladdy\\Images\\Border_Gloss.tga")
+	self.LSM:Register("border", "Border_squared_blp", "Interface\\AddOns\\Gladdy\\Images\\Border_squared_blp")
+	self.LSM:Register("border", "Border_rounded_blp", "Interface\\AddOns\\Gladdy\\Images\\Border_rounded_blp")
 	self.LSM:Register("font", "DorisPP", "Interface\\AddOns\\Gladdy\\Images\\DorisPP.TTF")
 	self.LSM:Register("border", "Square Full White", "Interface\\AddOns\\Gladdy\\Images\\Square_FullWhite.tga")
 
+	-- Reassign local L to point to Gladdy.L
 	L = self.L
+
+	-- Handle locale settings
+	if self.db.locale ~= "auto" then
+		-- Access the AceDBOptions-3.0 library
+		local AceDBOptions = LibStub("AceDBOptions-3.0")
+		if AceDBOptions then
+			-- Ensure AceDBOptions.L exists before trying to use it
+			if not AceDBOptions.L then
+				AceDBOptions.L = {}
+			end
+				
+			if self.db.locale == "enUS" then
+				-- Force English localization for the options
+				AceDBOptions.L.profiles = "Profiles"
+				AceDBOptions.L.profiles_sub = "Manage Profiles"
+				AceDBOptions.L.default = "Default"
+				AceDBOptions.L.intro = "You can change the active database profile, so you can have different settings for every character."
+				AceDBOptions.L.reset_desc = "Reset the current profile back to its default values."
+				AceDBOptions.L.reset = "Reset Profile"
+				AceDBOptions.L.reset_sub = "Reset the current profile to the default values."
+				AceDBOptions.L.choose_desc = "You can either create a new profile by entering a name in the editbox, or choose one of the already existing profiles."
+				AceDBOptions.L.new = "New"
+				AceDBOptions.L.new_sub = "Create a new empty profile."
+				AceDBOptions.L.choose = "Existing Profiles"
+				AceDBOptions.L.choose_sub = "Select one of your currently available profiles."
+				AceDBOptions.L.copy_desc = "Copy the settings from one existing profile into the currently active profile."
+				AceDBOptions.L.copy = "Copy From"
+				AceDBOptions.L.copy_sub = "Copy from another profile."
+				AceDBOptions.L.delete_desc = "Delete existing and unused profiles from the database to save space, and cleanup the SavedVariables file."
+				AceDBOptions.L.delete = "Delete a Profile"
+				AceDBOptions.L.delete_sub = "Delete one of your currently available profiles."
+				AceDBOptions.L.current = "Current Profile:"
+				AceDBOptions.L.confirm_delete = "Are you sure you want to delete the selected profile?"
+			elseif self.db.locale == "ruRU" then
+				-- Force Russian localization
+				AceDBOptions.L.profiles = "Профили"
+				AceDBOptions.L.profiles_sub = "Управление профилями"
+				AceDBOptions.L.default = "По умолчанию"
+				AceDBOptions.L.intro = "Вы можете изменить активный профиль, таким образом у вас могут быть разные настройки для каждого персонажа."
+				AceDBOptions.L.reset_desc = "Сбросить текущий профиль до значений по умолчанию."
+				AceDBOptions.L.reset = "Сбросить профиль"
+				AceDBOptions.L.reset_sub = "Сбросить текущий профиль до значений по умолчанию."
+				AceDBOptions.L.choose_desc = "Вы можете создать новый профиль, введя название в поле ввода, или выбрать один из уже существующих профилей."
+				AceDBOptions.L.new = "Новый"
+				AceDBOptions.L.new_sub = "Создать новый пустой профиль."
+				AceDBOptions.L.choose = "Существующие профили"
+				AceDBOptions.L.choose_sub = "Выберите один из доступных профилей."
+				AceDBOptions.L.copy_desc = "Скопировать настройки из другого профиля в текущий активный профиль."
+				AceDBOptions.L.copy = "Копировать из"
+				AceDBOptions.L.copy_sub = "Копировать из другого профиля."
+				AceDBOptions.L.delete_desc = "Удалить существующие и неиспользуемые профили из базы данных для экономии места и очистки файла сохраненных переменных."
+				AceDBOptions.L.delete = "Удалить профиль"
+				AceDBOptions.L.delete_sub = "Удалить один из доступных профилей."
+				AceDBOptions.L.current = "Текущий профиль:"
+				AceDBOptions.L.confirm_delete = "Вы уверены, что хотите удалить выбранный профиль?"
+			end
+		end
+	end
 
 	self.testData = {
 		["arena1"] = { name = "Swift", raceLoc = L["NightElf"], classLoc = L["Druid"], class = "DRUID", health = 67, healthMax = 100, power = 76, powerMax = 100, powerType = 1, testSpec = L["Restoration"], race = "NightElf" },
@@ -319,9 +451,65 @@ function Gladdy:OnInitialize()
 	end
 end
 
+-- Function to apply localization based on selected language
+function Gladdy:ApplyLocalization()
+    local currentLocale = GetLocale()
+    local userSelectedLocale = self.db and self.db.locale or "auto"
+    
+    local langToApply = "enUS"
+    
+    if userSelectedLocale == "enUS" then
+        langToApply = "enUS"
+        Gladdy:Debug("INFO", "Using English localization (forced)")
+    elseif userSelectedLocale == "ruRU" then
+        langToApply = "ruRU"
+        Gladdy:Debug("INFO", "Using Russian localization (forced)")
+    elseif userSelectedLocale == "auto" and currentLocale == "ruRU" then
+        langToApply = "ruRU"
+        Gladdy:Debug("INFO", "Using Russian localization (auto)")
+    else
+        langToApply = "enUS"
+        Gladdy:Debug("INFO", "Using English localization (default)")
+    end
+    
+    -- Применяем локализацию
+    self:ApplyLanguage(langToApply)
+    
+    -- Обновляем интерфейс
+    self:UpdateLocalization()
+    
+    Gladdy:Debug("INFO", "Localization applied", "Client locale:", currentLocale, "Selected locale:", userSelectedLocale)
+end
+
+-- Function to update localization based on db settings
+function Gladdy:UpdateLocalization()
+	if Gladdy.options then
+		-- Update specific button texts
+		if Gladdy.options.args.lock then
+			Gladdy.options.args.lock.name = Gladdy.db.locked and L["Unlock frame"] or L["Lock frame"]
+			Gladdy.options.args.lock.desc = L["Toggle if frame can be moved"]
+		end
+		if Gladdy.options.args.showMover then
+			Gladdy.options.args.showMover.name = Gladdy.db.showMover and L["Hide Mover"] or L["Show Mover"]
+			Gladdy.options.args.showMover.desc = L["Toggle to show Mover Frames"]
+		end
+		if Gladdy.options.args.test then
+			Gladdy.options.args.test.name = L["Test"]
+			Gladdy.options.args.test.desc = L["Show Test frames"]
+		end
+		
+		-- Notify AceConfigRegistry of changes
+		LibStub("AceConfigRegistry-3.0"):NotifyChange("Gladdy")
+	end
+end
+
 function Gladdy:OnProfileReset()
 	self.db = self.dbi.profile
 	Gladdy:Debug("INFO", "OnProfileReset")
+	
+	-- Применяем локализацию после сброса профиля
+	self:ApplyLocalization()
+
 	self:HideFrame()
 	self:ToggleFrame(3)
 	Gladdy.options.args.lock.name = Gladdy.db.locked and L["Unlock frame"] or L["Lock frame"]
@@ -331,6 +519,10 @@ end
 
 function Gladdy:OnProfileChanged()
 	self.db = self.dbi.profile
+	
+	-- Применяем локализацию после изменения профиля
+	self:ApplyLocalization()
+	
 	self:HideFrame()
 	self:ToggleFrame(3)
 	Gladdy.options.args.lock.name = Gladdy.db.locked and L["Unlock frame"] or L["Lock frame"]
@@ -359,12 +551,15 @@ function Gladdy:OnEnable()
 	if (not self.db.locked and self.db.x == 0 and self.db.y == 0) then
 		self:Print(L["Welcome to Gladdy!"])
 		self:Print(L["First run has been detected, displaying test frame."])
-		self:Print(L["Valid slash commands are:"])
-		self:Print(L["/gladdy ui"])
-		self:Print(L["/gladdy test2-5"])
-		self:Print(L["/gladdy hide"])
-		self:Print(L["/gladdy reset"])
 		self:Print(L["If this is not your first run please lock or move the frame to prevent this from happening."])
+		self:Print(L["Valid slash commands are:"])
+		self:Print("/gladdy ui")
+		self:Print("/gladdy test")
+		self:Print("/gladdy test [1-5]")
+		self:Print("/gladdy hide")
+		self:Print("/gladdy reset")
+		self:Print("/gladdy debug")
+		self:Print("/gladdy debug [error|warn|info]")
 
 		self:HideFrame()
 		self:ToggleFrame(3)
@@ -373,11 +568,11 @@ function Gladdy:OnEnable()
 end
 
 function Gladdy:GetIconStyles()
-	return
-	{
-		["Interface\\AddOns\\Gladdy\\Images\\Border_rounded_blp"] = L["Gladdy Tooltip round"],
-		["Interface\\AddOns\\Gladdy\\Images\\Border_squared_blp"] = L["Gladdy Tooltip squared"],
-		["Interface\\AddOns\\Gladdy\\Images\\Border_Gloss"] = L["Gloss (black border)"],
+	return {
+        ["Interface\\AddOns\\Gladdy\\Images\\Border_rounded_blp.blp"] = L["Gladdy Tooltip round"],
+        ["Interface\\AddOns\\Gladdy\\Images\\Border_squared_blp.blp"] = L["Gladdy Tooltip squared"],
+        ["Interface\\AddOns\\Gladdy\\Images\\Border_Gloss.tga"] = L["Gloss (black border)"],
+		["None"] = L["None"],
 	}
 end
 
@@ -528,30 +723,44 @@ end
 ---------------------------
 
 function Gladdy:JoinedArena()
-	if not self.curBracket then
-		self.curBracket = 2
-	end
-
-	for i = 1, self.curBracket do
-		if (not self.buttons["arena" .. i]) then
-			self:CreateButton(i)
-		end
-	end
-
-	if InCombatLockdown() then
-		--Gladdy:Print("Gladdy frames show as soon as you leave combat")
-		self.showFrame = true
-	else
-		self:UpdateFrame()
-		self.frame:Show()
+    Gladdy:Debug("INFO", "JoinedArena", "Start", "curBracket:", self.curBracket)
+    
+    -- Устанавливаем минимальный размер команды, если не определен
+    if not self.curBracket then
+        self.curBracket = 2
+    end
+    
+    -- Создаем кнопки для каждого участника арены
+    for i = 1, self.curBracket do
+        if not self.buttons["arena" .. i] then
+            self:CreateButton(i)
+        end
+    end
+    
+    -- Показываем фреймы с учетом боевой ситуации
+    if InCombatLockdown() then
+        Gladdy:Debug("INFO", "JoinedArena", "In combat, delaying frame show")
+        self.showFrame = true
+    else
+        Gladdy:Debug("INFO", "JoinedArena", "Showing frames immediately")
+        self:UpdateFrame()
+        self.frame:Show()
 		self:SendMessage("JOINED_ARENA")
-	end
-	for i=1, self.curBracket do
-		self.buttons["arena" .. i]:SetAlpha(1)
-	end
-	if Gladdy.db.hideBlizzard == "arena" or Gladdy.db.hideBlizzard == "always" then
-		Gladdy:BlizzArenaSetAlpha(0)
-	end
+    end
+    
+    -- Устанавливаем прозрачность для кнопок арены
+    for i = 1, self.curBracket do
+        local button = self.buttons["arena" .. i]
+        if button then
+            button:SetAlpha(1)
+            Gladdy:Debug("INFO", "JoinedArena", "Set alpha for arena" .. i)
+        end
+    end
+    
+    -- Скрываем стандартные фреймы Blizzard если необходимо
+    if self.db.hideBlizzard == "arena" or self.db.hideBlizzard == "always" then
+        self:BlizzArenaSetAlpha(0)
+    end
 end
 
 ---------------------------
@@ -608,13 +817,34 @@ local defaults = {["statusbar"] = "Smooth", ["border"] = "Gladdy Tooltip round",
 
 local lastWarning = {}
 function Gladdy:SMFetch(lsmType, key)
-	local smMediaType = self.LSM:Fetch(lsmType, Gladdy.db[key])
-	if (smMediaType == nil and Gladdy.db[key] ~= "None") then
-		if not lastWarning[key] or GetTime() - lastWarning[key] > 120 then
-			lastWarning[key] = GetTime()
-			Gladdy:Warn("Could not find", "\"" .. lsmType .. "\" \"", Gladdy.db[key], " \" for", "\"" .. key .. "\"", "- setting it to", "\"" .. defaults[lsmType] .. "\"")
-		end
-		return self.LSM:Fetch(lsmType, defaults[lsmType])
-	end
-	return smMediaType
+    local styleValue = Gladdy.db[key]
+    if not styleValue then
+        return self.LSM:Fetch(lsmType, defaults[lsmType])
+    end
+
+    -- Check if this is a direct path (starting with "Interface\")
+    if type(styleValue) == "string" and styleValue:find("^Interface\\") then
+        -- Try to find the registered name for this path
+        for _, name in pairs(self.LSM:List(lsmType)) do
+            if self.LSM:Fetch(lsmType, name) == styleValue then
+                return styleValue -- Return the direct path
+            end
+        end
+
+        -- If we reach here, we need to register the texture path
+        local baseName = styleValue:match("([^\\]+)%.%w+$") or "CustomBorder"
+        self.LSM:Register(lsmType, baseName, styleValue)
+        return styleValue
+    end
+
+    -- Normal LSM lookup
+    local smMediaType = self.LSM:Fetch(lsmType, styleValue)
+    if (smMediaType == nil and styleValue ~= "None") then
+        if not lastWarning[key] or GetTime() - lastWarning[key] > 120 then
+            lastWarning[key] = GetTime()
+            Gladdy:Warn("Could not find", "\"" .. lsmType .. "\" \"", styleValue, " \" for", "\"" .. key .. "\"", "- setting it to", "\"" .. defaults[lsmType] .. "\"")
+        end
+        return self.LSM:Fetch(lsmType, defaults[lsmType])
+    end
+    return smMediaType
 end

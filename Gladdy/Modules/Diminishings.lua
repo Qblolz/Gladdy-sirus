@@ -1,4 +1,3 @@
-local select = select
 local pairs,ipairs,tbl_sort,tinsert,format,rand = pairs,ipairs,table.sort,tinsert,format,math.random
 local str_gsub = string.gsub
 
@@ -83,7 +82,25 @@ end
 
 function Diminishings:Initialize()
 	self.frames = {}
-	self:RegisterMessage("UNIT_DESTROYED")
+	if Gladdy.db.drEnabled then
+		self:RegisterMessage("UNIT_DESTROYED")
+	end
+end
+
+function Diminishings:ResetUnit(unit)
+	local drFrame = self.frames[unit]
+	if (not drFrame) then return end
+
+	drFrame.tracked = {}
+
+	for i = 1, 16 do
+		local icon = drFrame["icon" .. i]
+		icon.active = false
+		icon.running = false
+		icon.timeLeft = 0
+		icon.timeText:SetText("")
+		icon:Hide()
+	end
 end
 
 function Diminishings:CreateFrame(unit)
@@ -101,8 +118,6 @@ function Diminishings:CreateFrame(unit)
 		icon:SetFrameStrata(Gladdy.db.drFrameStrata)
 		icon:SetFrameLevel(Gladdy.db.drFrameLevel)
 		icon.texture = icon:CreateTexture(nil, "BACKGROUND")
-		--icon.texture:SetMask("Interface\\AddOns\\Gladdy\\Images\\mask")
-		icon.texture.masked = true
 		icon.texture:SetAllPoints(icon)
 		icon:SetScript("OnUpdate", function(self, elapsed)
 			if (self.running) then
@@ -131,9 +146,7 @@ function Diminishings:CreateFrame(unit)
 		icon.cooldown:SetDrawEdge(true)
 
 		icon.cooldownFrame = CreateFrame("Frame", nil, icon)
-		icon.cooldownFrame:ClearAllPoints()
-		icon.cooldownFrame:SetPoint("TOPLEFT", icon, "TOPLEFT")
-		icon.cooldownFrame:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT")
+		icon.cooldownFrame:SetAllPoints(icon)
 		icon.cooldownFrame:SetFrameStrata(Gladdy.db.drFrameStrata)
 		icon.cooldownFrame:SetFrameLevel(Gladdy.db.drFrameLevel + 2)
 
@@ -143,7 +156,7 @@ function Diminishings:CreateFrame(unit)
 		icon.border:SetTexture("Interface\\AddOns\\Gladdy\\Images\\Border_rounded_blp")
 		icon.border:SetAllPoints(icon)
 
-		icon.timeText = icon.cooldownFrame:CreateFontString(nil, "OVERLAY")
+		icon.timeText = icon.cooldownFrame:CreateFontString(nil,"OVERLAY","GameFontNormal")
 		icon.timeText:SetDrawLayer("OVERLAY")
 		icon.timeText:SetFont(Gladdy:SMFetch("font", "drFont"), 10, "OUTLINE")
 		icon.timeText:SetTextColor(Gladdy:SetColor(Gladdy.db.drFontColor))
@@ -174,11 +187,9 @@ end
 
 function Diminishings:UpdateFrame(unit)
 	local drFrame = self.frames[unit]
-	if (not drFrame) then
-		return
-	end
+	if not drFrame then return end
 
-	if (Gladdy.db.drEnabled == false) then
+	if Gladdy.db.drEnabled == false then
 		drFrame:Hide()
 		return
 	else
@@ -190,37 +201,40 @@ function Diminishings:UpdateFrame(unit)
 	drFrame:SetFrameStrata(Gladdy.db.drFrameStrata)
 	drFrame:SetFrameLevel(Gladdy.db.drFrameLevel)
 
-	Gladdy:SetPosition(drFrame, unit, "drXOffset", "drYOffset", Diminishings:LegacySetPosition(drFrame, unit), Diminishings)
+	-- Обновляем позицию
+	if not Gladdy.db.drGroup or unit == "arena1" then
+		Gladdy:SetPosition(drFrame, unit, "drXOffset", "drYOffset", Diminishings)
+	end
 
-	if (Gladdy.db.drGroup) then
-		if (unit ~= "arena1") then
+	-- Обновляем группировку
+	if Gladdy.db.drGroup then
+		if unit ~= "arena1" then
 			local previousUnit = "arena" .. str_gsub(unit, "arena", "") - 1
-			self.frames[unit]:ClearAllPoints()
-			if Gladdy.db.classIconGroupDirection == "RIGHT" then
-				self.frames[unit]:SetPoint("LEFT", self.frames[previousUnit], "RIGHT", 0, 0)
-			elseif Gladdy.db.classIconGroupDirection == "LEFT" then
-				self.frames[unit]:SetPoint("RIGHT", self.frames[previousUnit], "LEFT", 0, 0)
-			elseif Gladdy.db.classIconGroupDirection == "UP" then
-				self.frames[unit]:SetPoint("BOTTOM", self.frames[previousUnit], "TOP", 0, 0)
-			elseif Gladdy.db.classIconGroupDirection == "DOWN" then
-				self.frames[unit]:SetPoint("TOP", self.frames[previousUnit], "BOTTOM", 0, 0)
+			drFrame:ClearAllPoints()
+			if Gladdy.db.drGroupDirection == "RIGHT" then
+				drFrame:SetPoint("LEFT", self.frames[previousUnit], "RIGHT", 0, 0)
+			elseif Gladdy.db.drGroupDirection == "LEFT" then
+				drFrame:SetPoint("RIGHT", self.frames[previousUnit], "LEFT", 0, 0)
+			elseif Gladdy.db.drGroupDirection == "UP" then
+				drFrame:SetPoint("BOTTOM", self.frames[previousUnit], "TOP", 0, 0)
+			elseif Gladdy.db.drGroupDirection == "DOWN" then
+				drFrame:SetPoint("TOP", self.frames[previousUnit], "BOTTOM", 0, 0)
 			end
 		end
 	end
 
-	if (unit == "arena1") then
-		Gladdy:CreateMover(drFrame,"drXOffset", "drYOffset", L["Diminishings"],
-				Gladdy.db.drGrowDirection == "RIGHT" and {"TOPLEFT", "TOPLEFT"} or {"TOPRIGHT", "TOPRIGHT"},
-				Gladdy.db.drIconSize * Gladdy.db.drWidthFactor,
-				Gladdy.db.drIconSize,
-				0,
-				0, "drEnabled")
+	-- Создаем мувер для первой арены
+	if unit == "arena1" then
+		Gladdy:CreateMover(drFrame, "drXOffset", "drYOffset", L["Diminishings"],
+			Gladdy.db.drGrowDirection == "RIGHT" and {"TOPLEFT", "TOPLEFT"} or {"TOPRIGHT", "TOPRIGHT"},
+			Gladdy.db.drIconSize * Gladdy.db.drWidthFactor,
+			Gladdy.db.drIconSize,
+			0, 0, "drEnabled")
 	end
 
-	local testAgain = false
+	-- Обновляем иконки
 	for i = 1, 16 do
 		local icon = drFrame["icon" .. i]
-
 		icon:SetWidth(Gladdy.db.drIconSize * Gladdy.db.drWidthFactor)
 		icon:SetHeight(Gladdy.db.drIconSize)
 
@@ -273,70 +287,36 @@ function Diminishings:UpdateFrame(unit)
 		end
 
 		icon:ClearAllPoints()
-		if (Gladdy.db.drGrowDirection == "LEFT") then
-			if (i == 1) then
+		if Gladdy.db.drGrowDirection == "LEFT" then
+			if i == 1 then
 				icon:SetPoint("TOPRIGHT", drFrame, "TOPRIGHT")
 			else
 				icon:SetPoint("RIGHT", drFrame["icon" .. (i - 1)], "LEFT", -Gladdy.db.drIconPadding, 0)
 			end
 		else
-			if (i == 1) then
+			if i == 1 then
 				icon:SetPoint("TOPLEFT", drFrame, "TOPLEFT")
 			else
 				icon:SetPoint("LEFT", drFrame["icon" .. (i - 1)], "RIGHT", Gladdy.db.drIconPadding, 0)
 			end
 		end
 
-		if Gladdy.db.drBorderStyle == "Interface\\AddOns\\Gladdy\\Images\\Border_Gloss" then
-			icon.border:SetTexture("Interface\\AddOns\\Gladdy\\Images\\Border_rounded_blp")
-		else
+		if Gladdy.db.drBorderStyle ~= "None" then
 			icon.border:SetTexture(Gladdy.db.drBorderStyle)
+		else
+			icon.border:SetTexture("")
 		end
 
 		if Gladdy.db.drIconZoomed then
-			if icon.texture.masked then
-				--icon.texture:SetMask("")
-				icon.texture:SetTexCoord(0.1,0.9,0.1,0.9)
-				icon.texture.masked = nil
-			end
+			icon.texture:SetTexCoord(0.1,0.9,0.1,0.9)
 		else
-			if not icon.texture.masked then
-				--icon.texture:SetMask("")
-				icon.texture:SetTexCoord(0,1,0,1)
-				--icon.texture:SetMask("Interface\\AddOns\\Gladdy\\Images\\mask")
-				icon.texture.masked = true
-				if Gladdy.frame.testing then
-					testAgain = true
-				end
-			end
+			icon.texture:SetTexCoord(0,1,0,1)
 		end
-	end
-	if testAgain then
-		Diminishings:ResetUnit(unit)
-		Diminishings:Test(unit)
-	end
-end
-
-function Diminishings:ResetUnit(unit)
-	local drFrame = self.frames[unit]
-	if (not drFrame) then
-		return
-	end
-
-	drFrame.tracked = {}
-
-	for i = 1, 16 do
-		local icon = drFrame["icon" .. i]
-		icon.active = false
-		icon.running = false
-		icon.timeLeft = 0
-		icon.texture:SetTexture("")
-		icon.timeText:SetText("")
-		icon:Hide()
 	end
 end
 
 function Diminishings:UNIT_DESTROYED(unit)
+	if (not Gladdy.db.drEnabled) then return end
 	Diminishings:ResetUnit(unit)
 end
 
@@ -401,9 +381,7 @@ end
 
 function Diminishings:FindLastIcon(unit, drCat)
 	local drFrame = self.frames[unit]
-	if (not drFrame or not drCat) then
-		return
-	end
+	if (not drFrame or not drCat) then return end
 	if not Gladdy.db.drCategories[drCat].enabled then
 		return
 	end
@@ -455,14 +433,13 @@ function Diminishings:PrepareIcon(unit, lastIcon, drCat, spellID)
 end
 
 function Diminishings:AuraGain(unit, spellID)
+	if (not Gladdy.db.drEnabled) then return end
+
 	local drFrame = self.frames[unit]
 	local drCat = DRData:GetSpellCategory(spellID)
-	if (not drFrame or not drCat) then
-		return
-	end
-	if not Gladdy.db.drCategories[drCat].enabled then
-		return
-	end
+
+	if (not drFrame or not drCat) then return end
+	if not Gladdy.db.drCategories[drCat].enabled then return end
 
 	-- due to dynamic DR we reset the DR here if dr == 0
 	if not drFrame.tracked[drCat] or drFrame.tracked[drCat] == 0 then
@@ -477,7 +454,6 @@ function Diminishings:AuraGain(unit, spellID)
 
 	Diminishings:PrepareIcon(unit, lastIcon, drCat, spellID)
 
-
 	lastIcon.running = false
 	lastIcon.cooldown:Hide()
 	lastIcon.cooldown:SetCooldown(0, 0)
@@ -487,12 +463,9 @@ end
 function Diminishings:AuraFade(unit, spellID)
 	local drFrame = self.frames[unit]
 	local drCat = DRData:GetSpellCategory(spellID)
-	if (not drFrame or not drCat) then
-		return
-	end
-	if not Gladdy.db.drCategories[drCat].enabled then
-		return
-	end
+
+	if (not drFrame or not drCat) then return end
+	if not Gladdy.db.drCategories[drCat].enabled then return end
 
 	-- find icon and start timer
 	local lastIcon = Diminishings:FindLastIcon(unit, drCat)
@@ -508,9 +481,7 @@ end
 
 function Diminishings:Positionate(unit)
 	local drFrame = self.frames[unit]
-	if (not drFrame) then
-		return
-	end
+	if (not drFrame) then return end
 
 	local lastIcon
 
@@ -519,15 +490,13 @@ function Diminishings:Positionate(unit)
 
 		if (icon.active) then
 			icon:ClearAllPoints()
-			if (Gladdy.db.newLayout and Gladdy.db.drGrowDirection == "LEFT"
-					or not Gladdy.db.newLayout and Gladdy.db.drCooldownPos == "LEFT") then
+			if Gladdy.db.drGrowDirection == "LEFT" then
 				if (not lastIcon) then
 					icon:SetPoint("TOPRIGHT")
 				else
 					icon:SetPoint("RIGHT", lastIcon, "LEFT", -Gladdy.db.drIconPadding, 0)
 				end
-			elseif (Gladdy.db.newLayout and Gladdy.db.drGrowDirection == "RIGHT"
-					or not Gladdy.db.newLayout and Gladdy.db.drCooldownPos == "RIGHT") then
+			elseif Gladdy.db.drGrowDirection == "RIGHT" then
 				if (not lastIcon) then
 					icon:SetPoint("TOPLEFT")
 				else
@@ -603,7 +572,7 @@ function Diminishings:GetOptions()
 						drIconZoomed = Gladdy:option({
 							type = "toggle",
 							name = L["Zoomed Icon"],
-							desc = L["Zoomes the icon to remove borders"],
+							desc = L["Zooms the icon to remove borders"],
 							order = 5,
 							width = "full",
 						}),
@@ -1027,37 +996,4 @@ function Diminishings:GetDRIcons(category)
 		end
 	end
 	return icons
-end
-
----------------------------
-
--- LAGACY HANDLER
-
----------------------------
-
-function Diminishings:LegacySetPosition(drFrame, unit)
-	if Gladdy.db.newLayout then
-		return Gladdy.db.newLayout
-	end
-	drFrame:ClearAllPoints()
-	local horizontalMargin = (Gladdy.db.highlightInset and 0 or Gladdy.db.highlightBorderSize) + Gladdy.db.padding
-	if (Gladdy.db.drCooldownPos == "LEFT") then
-		Gladdy.db.drGrowDirection = "LEFT"
-		local anchor = Gladdy:GetAnchor(unit, "LEFT")
-		if anchor == Gladdy.buttons[unit].healthBar then
-			drFrame:SetPoint("RIGHT", anchor, "LEFT", -horizontalMargin + Gladdy.db.drXOffset, Gladdy.db.drYOffset)
-		else
-			drFrame:SetPoint("RIGHT", anchor, "LEFT", -Gladdy.db.padding + Gladdy.db.drXOffset, Gladdy.db.drYOffset)
-		end
-	end
-	if (Gladdy.db.drCooldownPos == "RIGHT") then
-		Gladdy.db.drGrowDirection = "RIGHT"
-		local anchor = Gladdy:GetAnchor(unit, "RIGHT")
-		if anchor == Gladdy.buttons[unit].healthBar then
-			drFrame:SetPoint("LEFT", anchor, "RIGHT", horizontalMargin + Gladdy.db.drXOffset, Gladdy.db.drYOffset)
-		else
-			drFrame:SetPoint("LEFT", anchor, "RIGHT", Gladdy.db.padding + Gladdy.db.drXOffset, Gladdy.db.drYOffset)
-		end
-	end
-	return Gladdy.db.newLayout
 end

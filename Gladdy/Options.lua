@@ -42,6 +42,7 @@ end
 
 Gladdy.defaults = {
     profile = {
+        locale = "auto", -- "auto", "enUS", "ruRU", etc.
         locked = false,
         hideBlizzard = "arena",
         x = 0,
@@ -62,25 +63,44 @@ Gladdy.defaults = {
 
 SLASH_GLADDY1 = "/gladdy"
 SlashCmdList["GLADDY"] = function(msg)
-    if (str_match(msg, "test[1-5]")) then
-        local _, num = str_match(msg, "(test)([1-5])")
+    if (str_match(msg, "test [1-5]")) then
+        local _, num = str_match(msg, "(test) ([1-5])")
         Gladdy:ToggleFrame(tonumber(num))
     elseif (msg == "test") then
         Gladdy:ToggleFrame(3)
     elseif (msg == "ui" or msg == "options" or msg == "config") then
-        LibStub("AceConfigDialog-3.0"):Open("Gladdy")
+        Gladdy:ShowOptions()
     elseif (msg == "reset") then
         Gladdy.dbi:ResetProfile()
     elseif (msg == "hide") then
         Gladdy:Reset()
         Gladdy:HideFrame()
+    elseif (msg == "debug") then
+        Gladdy.debug = not Gladdy.debug
+        Gladdy:Print("Debug mode", Gladdy.debug and "enabled" or "disabled")
+    elseif (str_match(msg, "debug (%w+)")) then
+        local level = str_match(msg, "debug (%w+)")
+        if level == "error" then
+            Gladdy.logLevel = Gladdy.LOG_LEVELS.ERROR
+            Gladdy:Print("Log level set to ERROR")
+        elseif level == "warn" then
+            Gladdy.logLevel = Gladdy.LOG_LEVELS.WARN
+            Gladdy:Print("Log level set to WARN")
+        elseif level == "info" then
+            Gladdy.logLevel = Gladdy.LOG_LEVELS.INFO
+            Gladdy:Print("Log level set to INFO")
+        else
+            Gladdy:Print("Invalid log level. Use: error, warn, info")
+        end
     else
         Gladdy:Print(L["Valid slash commands are:"])
         Gladdy:Print("/gladdy ui")
         Gladdy:Print("/gladdy test")
-        Gladdy:Print("/gladdy test1-5")
+        Gladdy:Print("/gladdy test [1-5]")
         Gladdy:Print("/gladdy hide")
         Gladdy:Print("/gladdy reset")
+        Gladdy:Print("/gladdy debug")
+        Gladdy:Print("/gladdy debug [error|warn|info]")
     end
 end
 
@@ -108,7 +128,13 @@ function Gladdy:SetColor(option, factor, altAlpha)
     if not factor then
         factor = 1
     end
-    return option.r / factor, option.g / factor, option.b / factor, altAlpha or option.a
+    -- Check if option is a table with r, g, b, a components
+    if type(option) == "table" and option.r ~= nil then
+        return option.r / factor, option.g / factor, option.b / factor, altAlpha or option.a
+    else
+        -- Return a default color if option is not a valid color table
+        return 1, 1, 1, altAlpha or 1
+    end
 end
 
 function Gladdy:colorOption(params)
@@ -222,8 +248,55 @@ function Gladdy:SetupOptions()
         get = getOpt,
         set = setOpt,
         args = {
-            lock = {
+            locale = {
+                type = "group",
+                name = L["Language"],
                 order = 1,
+                args = {
+                    headerLocale = {
+                        type = "header",
+                        name = L["Language Settings"],
+                        order = 1,
+                    },
+                    localeOption = {
+                        type = "select",
+                        name = L["Interface Language"],
+                        desc = L["Change the language of the addon interface"],
+                        order = 2,
+                        values = {
+                            ["auto"] = L["Auto (Game Client)"],
+                            ["enUS"] = "English",
+                            ["ruRU"] = "Русский",
+                        },
+                        get = function(info) return Gladdy.db.locale end,
+                        set = function(info, value)
+                            Gladdy.db.locale = value
+                            
+                            -- Сохраняем настройки и перезагружаем интерфейс
+                            -- Локализация будет применена при следующей загрузке
+                            ReloadUI()
+                        end,
+                        width = "full",
+                    },
+                    localeNote = {
+                        type = "description",
+                        name = L["Note: Changing the language requires a UI reload to take effect."],
+                        order = 3,
+                        width = "full",
+                    },
+                    clientLanguageInfo = {
+                        type = "description",
+                        name = function()
+                            local clientLocale = GetLocale()
+                            return string.format(L["Current client language: %s"], clientLocale)
+                        end,
+                        order = 4,
+                        width = "full",
+                    },
+                },
+            },
+            lock = {
+                order = 2,
                 width = 0.7,
                 name = Gladdy.db.locked and L["Unlock frame"] or L["Lock frame"],
                 desc = L["Toggle if frame can be moved"],
@@ -784,16 +857,41 @@ function Gladdy:SetupOptions()
                 func = function()
                     HideUIPanel(InterfaceOptionsFrame)
                     HideUIPanel(GameMenuFrame)
-                    LibStub("AceConfigDialog-3.0"):Open("Gladdy")
+                    Gladdy:ShowOptions()
                 end,
             },
         },
     }
 
     self.options.plugins.profiles = { profiles = LibStub("AceDBOptions-3.0"):GetOptionsTable(self.dbi) }
-    LibStub("AceConfig-3.0"):RegisterOptionsTable("Gladdy_blizz", options)
+    
+    -- Register with Ace3 config system
+    LibStub("AceConfig-3.0"):RegisterOptionsTable("Gladdy_blizz", self.options)
     LibStub("AceConfigDialog-3.0"):AddToBlizOptions("Gladdy_blizz", "Gladdy")
+    
+    -- Explicitly register Gladdy with AceConfig
     LibStub("AceConfig-3.0"):RegisterOptionsTable("Gladdy", self.options)
+    
+    -- Update localization
+    self:UpdateLocalization()
+    
+    -- Make sure it's registered with AceConfigRegistry
+    local AceConfigRegistry = LibStub("AceConfigRegistry-3.0")
+    -- Safely check if registeredNamespaces exists and if Gladdy is registered
+    if AceConfigRegistry.registeredNamespaces and not AceConfigRegistry.registeredNamespaces["Gladdy"] then
+        AceConfigRegistry:RegisterOptionsTable("Gladdy", self.options)
+    elseif not AceConfigRegistry.registeredNamespaces then
+        -- Some versions of AceConfigRegistry handle this internally
+        AceConfigRegistry:RegisterOptionsTable("Gladdy", self.options)
+    end
+
+    -- Удаляем проверку на TotemPlates
+    if Gladdy.db.auraBorderStyle == Gladdy.db.npTotemPlatesBorderStyle then
+        Gladdy.db.auraBorderStyle = "Interface\\AddOns\\Gladdy\\Images\\Border_rounded_blp"
+    end
+    
+    -- Удаляем установку стиля границы TotemPlates
+    Gladdy.db.npTotemPlatesBorderStyle = nil
 
 end
 

@@ -2,12 +2,12 @@ local pairs, ipairs = pairs, ipairs
 local floor, abs = math.floor, math.abs
 local str_find, str_gsub, str_sub, tinsert = string.find, string.gsub, string.sub, table.insert
 local UnitHealth, UnitHealthMax, UnitName, UnitExists, UnitIsDeadOrGhost = UnitHealth, UnitHealthMax, UnitName, UnitExists, UnitIsDeadOrGhost
-local C_Timer = C_Timer
 
 local CreateFrame = CreateFrame
 local RAID_CLASS_COLORS = RAID_CLASS_COLORS
 
 local Gladdy = LibStub("Gladdy")
+local AceTimer = LibStub("AceTimer-3.0")
 local L = Gladdy.L
 local AceGUIWidgetLSMlists = AceGUIWidgetLSMlists
 local Healthbar = Gladdy:NewModule("Health Bar", 100, {
@@ -350,6 +350,15 @@ function Healthbar:ENEMY_SPOTTED(unit)
     if UnitExists(unit) then
         local health = UnitHealth(unit)
         local healthMax = UnitHealthMax(unit)
+        
+        -- Если значения не получены, пробуем еще раз через небольшую задержку
+        if not health or not healthMax or health == 0 or healthMax == 0 then
+            Gladdy:After(0.1, function()
+                self:ENEMY_SPOTTED(unit)
+            end)
+            return
+        end
+        
         healthBar.hp:SetMinMaxValues(0, healthMax)
         healthBar.hp:SetValue(health)
         healthBar.hp.current = health
@@ -381,9 +390,9 @@ function Healthbar:UNIT_DEATH(unit)
     healthBar.hp.current = 0
     Healthbar:SetText(unit, 0, 100, L["DEAD"])
 
-    C_Timer:After(0.2,function()
+    Gladdy:ScheduleTimer(function()
         Healthbar:ENEMY_SPOTTED(unit)
-    end)
+    end, 0.2)
 end
 
 local function option(params)

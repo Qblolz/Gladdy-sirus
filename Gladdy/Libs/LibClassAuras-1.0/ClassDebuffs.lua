@@ -255,4 +255,3 @@ Debuff({ 66803 }, { buffType = "physical" }, "DEATHKNIGHT") -- Desecration
 Debuff({ 50436 }, { buffType = "physical" }, "DEATHKNIGHT") -- Icy Clutch
 Debuff({ 49005 }, { buffType = "physical" }, "DEATHKNIGHT") -- Mark of Blood
 
-

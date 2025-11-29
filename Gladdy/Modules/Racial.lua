@@ -8,13 +8,14 @@ local L = Gladdy.L
 local Racial = Gladdy:NewModule("Racial", 79, {
 	racialFont = "DorisPP",
 	racialFontScale = 1,
+	racialFontEnabled = true,
 	racialEnabled = true,
 	racialSize = 60 + 20 + 1,
 	racialWidthFactor = 0.9,
 	racialIconZoomed = false,
 	racialXOffset = 0,
 	racialYOffset = 0,
-	racialBorderStyle = "Interface\\AddOns\\Gladdy\\Images\\Border_rounded_blp",
+	racialBorderStyle = "Interface\\AddOns\\Gladdy\\Images\\Border_rounded_blp", 
 	racialBorderColor = { r = 0, g = 0, b = 0, a = 1 },
 	racialDisableCircle = false,
 	racialCooldownAlpha = 1,
@@ -59,9 +60,7 @@ function Racial:Initialize()
 		self:RegisterMessage("JOINED_ARENA")
 		self:RegisterMessage("ENEMY_SPOTTED")
 		self:RegisterMessage("RACIAL_USED")
-		if Gladdy.expansion == "Wrath" then
-			self:RegisterMessage("TRINKET_USED")
-		end
+		self:RegisterMessage("TRINKET_USED")
 	end
 end
 
@@ -70,186 +69,115 @@ function Racial:UpdateFrameOnce()
 		self:RegisterMessage("JOINED_ARENA")
 		self:RegisterMessage("ENEMY_SPOTTED")
 		self:RegisterMessage("RACIAL_USED")
-		if Gladdy.expansion == "Wrath" then
-			self:RegisterMessage("TRINKET_USED")
-		end
+		self:RegisterMessage("TRINKET_USED")
 	else
 		self:UnregisterAllMessages()
 	end
 end
 
-local function iconTimer(self,elapsed)
-	if (self.active) then
-		if (self.timeLeft <= 0) then
-			self.active = false
-			self.cooldown:Clear()
-		else
-			self.timeLeft = self.timeLeft - elapsed
-		end
+function Racial:Reset()
+	self:SetScript("OnEvent", nil)
+end
 
-		local timeLeft = ceil(self.timeLeft)
-
-		if timeLeft >= 60 then
-			self.cooldownFont:SetTextColor(1, 1, 0, Gladdy.db.racialCooldownNumberAlpha)
-			self.cooldownFont:SetFont(Gladdy:SMFetch("font", "racialFont"), (self:GetWidth()/2 - 0.15* self:GetWidth()) * Gladdy.db.racialFontScale, "OUTLINE")
-		elseif timeLeft < 60 and timeLeft >= 30 then
-			self.cooldownFont:SetTextColor(1, 1, 0, Gladdy.db.racialCooldownNumberAlpha)
-			self.cooldownFont:SetFont(Gladdy:SMFetch("font", "racialFont"), (self:GetWidth()/2 - 1) * Gladdy.db.racialFontScale, "OUTLINE")
-		elseif timeLeft < 30 and timeLeft >= 11 then
-			self.cooldownFont:SetTextColor(1, 0.7, 0, Gladdy.db.racialCooldownNumberAlpha)
-			self.cooldownFont:SetFont(Gladdy:SMFetch("font", "racialFont"), (self:GetWidth()/2 - 1) * Gladdy.db.racialFontScale, "OUTLINE")
-		elseif timeLeft < 10 and timeLeft >= 5 then
-			self.cooldownFont:SetTextColor(1, 0.7, 0, Gladdy.db.racialCooldownNumberAlpha)
-			self.cooldownFont:SetFont(Gladdy:SMFetch("font", "racialFont"), (self:GetWidth()/2 - 1) * Gladdy.db.racialFontScale, "OUTLINE")
-		elseif timeLeft < 5 and timeLeft > 0 then
-			self.cooldownFont:SetTextColor(1, 0, 0, Gladdy.db.racialCooldownNumberAlpha)
-			self.cooldownFont:SetFont(Gladdy:SMFetch("font", "racialFont"), (self:GetWidth()/2 - 1) * Gladdy.db.racialFontScale, "OUTLINE")
-		end
-		Gladdy:FormatTimer(self.cooldownFont, self.timeLeft, self.timeLeft < 10, true)
-	end
+function Racial:ResetUnit(unit)
+	local racial = self.frames[unit]
+	if not racial then return end
+	
+	racial:SetIcon(nil)
+	racial.timeLeft = nil
+	racial.active = false
+	racial:StopCooldown()
+	--racial:UpdateBorder(Gladdy.db.racialBorderStyle, Gladdy.db.racialBorderColor)
 end
 
 function Racial:CreateFrame(unit)
-	local racial = CreateFrame("Button", "GladdyTrinketButton" .. unit, Gladdy.buttons[unit])
-	racial:EnableMouse(false)
-	racial:SetFrameStrata(Gladdy.db.racialFrameStrata)
-	racial:SetFrameLevel(Gladdy.db.racialFrameLevel)
+	-- Создаем фрейм иконки с помощью утилиты
+	local racial = Gladdy:CreateIconFrame(Gladdy.buttons[unit], "GladdyRacialButton" .. unit, {
+		frameStrata = Gladdy.db.racialFrameStrata,
+		frameLevel = Gladdy.db.racialFrameLevel,
+		iconZoomed = Gladdy.db.racialIconZoomed,
+		cooldownAlpha = Gladdy.db.racialCooldownAlpha,
+		fontAlpha = Gladdy.db.racialCooldownNumberAlpha,
+		fontOption = "racialFont",
+		fontScale = Gladdy.db.racialFontScale,
+		borderStyle = Gladdy.db.racialBorderStyle,
+		borderColor = Gladdy.db.racialBorderColor,
+		fontEnabled = Gladdy.db.racialFontEnabled,
+		disableCircle = Gladdy.db.racialDisableCircle
+	})
 
-	racial.texture = racial:CreateTexture(nil, "BACKGROUND")
-	racial.texture:SetAllPoints(racial)
-	--racial.texture:SetMask("Interface\\AddOns\\Gladdy\\Images\\mask")
-	racial.texture.masked = true
-	--racial.texture:SetTexture("Interface\\Icons\\INV_Jewelry_TrinketPVP_02")
+	-- Устанавливаем размеры
+	racial:SetWidth(Gladdy.db.racialSize)
+	racial:SetHeight(Gladdy.db.racialSize)
 
-	racial.cooldown = CreateFrame("Cooldown", nil, racial, "CooldownFrameTemplate")
-	racial.cooldown.noCooldownCount = true --Gladdy.db.racialDisableOmniCC
-	--racial.cooldown:SetHideCountdownNumbers(true)
-	racial.cooldown:SetFrameStrata(Gladdy.db.racialFrameStrata)
-	racial.cooldown:SetFrameLevel(Gladdy.db.racialFrameLevel + 1)
-	racial.cooldown:SetDrawEdge(true)
-
-	racial.cooldownFrame = CreateFrame("Frame", nil, racial)
-	racial.cooldownFrame:ClearAllPoints()
-	racial.cooldownFrame:SetPoint("TOPLEFT", racial, "TOPLEFT")
-	racial.cooldownFrame:SetPoint("BOTTOMRIGHT", racial, "BOTTOMRIGHT")
-	racial.cooldownFrame:SetFrameStrata(Gladdy.db.racialFrameStrata)
-	racial.cooldownFrame:SetFrameLevel(Gladdy.db.racialFrameLevel + 2)
-
-	racial.cooldownFont = racial.cooldownFrame:CreateFontString(nil, "OVERLAY")
-	racial.cooldownFont:SetFont(Gladdy:SMFetch("font", "racialFont"), 20, "OUTLINE")
-	--trinket.cooldownFont:SetAllPoints(trinket.cooldown)
-	racial.cooldownFont:SetJustifyH("CENTER")
-	racial.cooldownFont:SetPoint("CENTER")
-
-	racial.borderFrame = CreateFrame("Frame", nil, racial)
-	racial.borderFrame:SetAllPoints(racial)
-	racial.borderFrame:SetFrameStrata(Gladdy.db.racialFrameStrata)
-	racial.borderFrame:SetFrameLevel(Gladdy.db.racialFrameLevel + 3)
-
-	racial.texture.overlay = racial.borderFrame:CreateTexture(nil, "OVERLAY")
-	racial.texture.overlay:SetAllPoints(racial)
-	racial.texture.overlay:SetTexture(Gladdy.db.racialBorderStyle)
-
-	racial:SetScript("OnUpdate", iconTimer)
-
-	Gladdy.buttons[unit].racial = racial
+	-- Сохраняем фрейм
 	self.frames[unit] = racial
 end
 
 function Racial:UpdateFrame(unit)
 	local racial = self.frames[unit]
-	if (not racial) then
-		return
-	end
+	if not racial then return end
 
-	local testAgain = false
+	racial:UpdateConfig({
+		frameStrata = Gladdy.db.racialFrameStrata,
+		frameLevel = Gladdy.db.racialFrameLevel,
+		iconZoomed = Gladdy.db.racialIconZoomed,
+		cooldownAlpha = Gladdy.db.racialCooldownAlpha,
+		fontAlpha = Gladdy.db.racialCooldownNumberAlpha,
+		fontOption = "racialFont",
+		fontScale = Gladdy.db.racialFontScale,
+		borderStyle = Gladdy.db.racialBorderStyle,
+		borderColor = Gladdy.db.racialBorderColor,
+		disableCircle = Gladdy.db.racialDisableCircle,
+		fontEnabled = Gladdy.db.racialFontEnabled
+	})
+
+	-- Обновляем размеры
 	local width, height = Gladdy.db.racialSize * Gladdy.db.racialWidthFactor, Gladdy.db.racialSize
-
-	racial:SetFrameStrata(Gladdy.db.racialFrameStrata)
-	racial:SetFrameLevel(Gladdy.db.racialFrameLevel)
-	racial.cooldown:SetFrameStrata(Gladdy.db.racialFrameStrata)
-	racial.cooldown:SetFrameLevel(Gladdy.db.racialFrameLevel + 1)
-	racial.cooldownFrame:SetFrameStrata(Gladdy.db.racialFrameStrata)
-	racial.cooldownFrame:SetFrameLevel(Gladdy.db.racialFrameLevel + 2)
-	racial.borderFrame:SetFrameStrata(Gladdy.db.racialFrameStrata)
-	racial.borderFrame:SetFrameLevel(Gladdy.db.racialFrameLevel + 3)
-
 	racial:SetWidth(width)
 	racial:SetHeight(height)
-	if Gladdy.db.racialIconZoomed then
-		racial.cooldown:SetWidth(width)
-		racial.cooldown:SetHeight(height)
-	else
-		racial.cooldown:SetWidth(width - width/16)
-		racial.cooldown:SetHeight(height - height/16)
-	end
-	racial.cooldown:ClearAllPoints()
-	racial.cooldown:SetPoint("CENTER", racial, "CENTER")
-	racial.cooldown.noCooldownCount = true -- Gladdy.db.racialDisableOmniCC
-	racial.cooldown:SetAlpha(Gladdy.db.racialCooldownAlpha)
 
-	racial.texture:ClearAllPoints()
-	racial.texture:SetAllPoints(racial)
-
-	racial.texture.overlay:SetTexture(Gladdy.db.racialBorderStyle)
-	racial.texture.overlay:SetVertexColor(Gladdy:SetColor(Gladdy.db.racialBorderColor))
-
-	if Gladdy.db.racialIconZoomed then
-		if racial.texture.masked then
-			racial.texture:SetMask("")
-			racial.texture:SetTexCoord(0.1,0.9,0.1,0.9)
-			racial.texture.masked = nil
-		end
-	else
-		if not racial.texture.masked then
-			racial.texture:SetMask("")
-			racial.texture:SetTexCoord(0,1,0,1)
-			racial.texture:SetMask("Interface\\AddOns\\Gladdy\\Images\\mask")
-			racial.texture.masked = true
-			if Gladdy.frame.testing then
-				testAgain = true
-			end
-		end
+	-- Обновляем позицию
+	if not Gladdy.db.racialGroup or unit == "arena1" then
+		Gladdy:SetPosition(racial, unit, "racialXOffset", "racialYOffset", Racial)
 	end
 
-	Gladdy:SetPosition(racial, unit, "racialXOffset", "racialYOffset", Racial:LegacySetPosition(racial, unit), Racial)
-
-	if (Gladdy.db.racialGroup) then
-		if (unit ~= "arena1") then
+	-- Обновляем группировку
+	if Gladdy.db.racialGroup then
+		if unit ~= "arena1" then
 			local previousUnit = "arena" .. str_gsub(unit, "arena", "") - 1
-			self.frames[unit]:ClearAllPoints()
+			racial:ClearAllPoints()
 			if Gladdy.db.racialGroupDirection == "RIGHT" then
-				self.frames[unit]:SetPoint("LEFT", self.frames[previousUnit], "RIGHT", 0, 0)
+				racial:SetPoint("LEFT", self.frames[previousUnit], "RIGHT", 0, 0)
 			elseif Gladdy.db.racialGroupDirection == "LEFT" then
-				self.frames[unit]:SetPoint("RIGHT", self.frames[previousUnit], "LEFT", 0, 0)
+				racial:SetPoint("RIGHT", self.frames[previousUnit], "LEFT", 0, 0)
 			elseif Gladdy.db.racialGroupDirection == "UP" then
-				self.frames[unit]:SetPoint("BOTTOM", self.frames[previousUnit], "TOP", 0, 0)
+				racial:SetPoint("BOTTOM", self.frames[previousUnit], "TOP", 0, 0)
 			elseif Gladdy.db.racialGroupDirection == "DOWN" then
-				self.frames[unit]:SetPoint("TOP", self.frames[previousUnit], "BOTTOM", 0, 0)
+				racial:SetPoint("TOP", self.frames[previousUnit], "BOTTOM", 0, 0)
 			end
 		end
 	end
 
-	if (unit == "arena1") then
-		Gladdy:CreateMover(racial,"racialXOffset", "racialYOffset", L["Racial"],
-				{"TOPLEFT", "TOPLEFT"},
-				Gladdy.db.racialSize * Gladdy.db.racialWidthFactor,
-				Gladdy.db.racialSize,
-				0, 0, "racialEnabled")
+	-- Создаем мувер для первой арены
+	if unit == "arena1" then
+		Gladdy:CreateMover(racial, "racialXOffset", "racialYOffset", L["Racial"],
+			{"TOPLEFT", "TOPLEFT"},
+			width, height,
+			0, 0, "racialEnabled")
 	end
 
-	if (Gladdy.db.racialEnabled == false) then
-		racial:Hide()
-	else
+	-- Показываем/скрываем в зависимости от настроек
+	if Gladdy.db.racialEnabled then
 		racial:Show()
-		if testAgain then
-			Racial:ResetUnit(unit)
-			Racial:Test(unit)
-		end
+	else
+		racial:Hide()
 	end
 end
 
 function Racial:JOINED_ARENA()
+	if (not Gladdy.db.racialEnabled) then return end
+	
 	self:SetScript("OnEvent", function(self, event, ...)
 		if self[event] then
 			self[event](self, ...)
@@ -257,7 +185,20 @@ function Racial:JOINED_ARENA()
 	end)
 end
 
+function Racial:ENEMY_SPOTTED(unit)
+	if (not Gladdy.db.racialEnabled) then return end
+
+	local racial = self.frames[unit]
+	local constellation = Gladdy.buttons[unit].constellation
+	if not racial or not constellation then return end
+	
+	racial:SetIcon(constellation.icon)
+	racial:Show()
+end
+
 function Racial:RACIAL_USED(unit, expirationTime, spellId)
+	if (not Gladdy.db.racialEnabled) then return end
+
 	local racial = self.frames[unit]
 	local button = Gladdy.buttons[unit]
 	local constellation = button.constellation
@@ -268,72 +209,58 @@ function Racial:RACIAL_USED(unit, expirationTime, spellId)
 	if expirationTime and constellation.id ~= spellId then
 		return
 	end
+
 	local startTime = expirationTime or GetTime()
 	Racial:Used(unit, startTime, constellation.cd)
 end
 
 function Racial:TRINKET_USED(unit) -- Wrath only
+	if (not Gladdy.db.racialEnabled) then return end
+
 	local racial = self.frames[unit]
 	local button = Gladdy.buttons[unit]
 	if (not racial or not button or not button.constellation) then
 		return
 	end
 	-- human
-	if button.constellation.id == 316231 then
+	if button.constellation.id == 371796 then
 		if racial.active and racial.timeLeft >= 90 then
 			-- do nothing
 		else
 			self:Used(unit, GetTime(), 90)
 		end
 	--scourge
-	elseif button.constellation.id == 316380 then
-		if racial.active and racial.timeLeft >= 45 then
+	elseif button.constellation.id == 371804 then
+		if racial.active and racial.timeLeft >= 60 then
 			-- do nothing
 		else
-			self:Used(unit, GetTime(), 45)
+			self:Used(unit, GetTime(), 60)
 		end
 	end
 end
 
 function Racial:Used(unit, startTime, duration)
 	local racial = self.frames[unit]
-	if (not racial) then
-		return
-	end
+	if not racial then return end
+
 	if not racial.active then
 		racial.timeLeft = duration
-		if not Gladdy.db.racialDisableCircle then racial.cooldown:SetCooldown(startTime, duration) end
+		if not Gladdy.db.racialDisableCircle then
+			racial.cooldown:SetCooldown(startTime, duration)
+		end
 		racial.active = true
 	end
 end
 
-function Racial:ENEMY_SPOTTED(unit)
-	local racial = self.frames[unit]
-	local constellation = Gladdy.buttons[unit].constellation
-	if (not racial or not constellation) then
-		return
-	end
-	racial.texture:SetTexture(constellation.icon)
-end
-
-function Racial:ResetUnit(unit)
-	local racial = self.frames[unit]
-	if (not racial) then
-		return
-	end
-	racial.texture:SetTexture(nil)
-	racial.timeLeft = nil
-	racial.active = false
-	racial.cooldown:Clear()
-	racial.cooldownFont:SetText("")
-end
-
 function Racial:Test(unit)
-	Racial:ENEMY_SPOTTED(unit)
 	local button = Gladdy.buttons[unit]
 	local constellations = Gladdy:Constellations()
 	local rndValue = math.random(#List_constellations - 1)
 	button.constellation = constellations[List_constellations[rndValue]]
+	
+	Racial:ENEMY_SPOTTED(unit)
+	
+	-- Set up cooldown on some units
 	if (unit == "arena2" or unit == "arena3") then
 		Gladdy:SendMessage("RACIAL_USED", unit)
 	end
@@ -341,7 +268,7 @@ end
 
 function Racial:GetOptions()
 	return {
-		headerTrinket = {
+		headerRacial = {
 			type = "header",
 			name = L["Racial"],
 			order = 2,
@@ -392,7 +319,7 @@ function Racial:GetOptions()
 						racialIconZoomed = Gladdy:option({
 							type = "toggle",
 							name = L["Zoomed Icon"],
-							desc = L["Zoomes the icon to remove borders"],
+							desc = L["Zooms the icon to remove borders"],
 							order = 2,
 							width = "full",
 						}),
@@ -462,6 +389,12 @@ function Racial:GetOptions()
 							name = L["Font"],
 							order = 4,
 						},
+						racialFontEnabled = Gladdy:option({
+							type = "toggle",
+							name = L["Font Enabled"],
+							order = 10,
+							width = "full",
+						}),
 						racialFont = Gladdy:option({
 							type = "select",
 							name = L["Font"],
@@ -569,30 +502,4 @@ function Racial:GetOptions()
 			},
 		},
 	}
-end
-
----------------------------
-
--- LAGACY HANDLER
-
----------------------------
-
-function Racial:LegacySetPosition(racial, unit)
-	if Gladdy.db.newLayout then
-		return Gladdy.db.newLayout
-	end
-
-	local ANCHORS = { ["LEFT"] = "RIGHT", ["RIGHT"] = "LEFT", ["BOTTOM"] = "TOP", ["TOP"] = "BOTTOM"}
-	racial:ClearAllPoints()
-	local parent = Gladdy.buttons[unit][Gladdy.db.racialAnchor]
-	if (Gladdy.db.racialPos == "RIGHT") then
-		racial:SetPoint(ANCHORS[Gladdy.db.racialPos], parent, Gladdy.db.racialPos, Gladdy.db.padding + Gladdy.db.racialXOffset, Gladdy.db.racialYOffset)
-	elseif (Gladdy.db.racialPos == "LEFT") then
-		racial:SetPoint(ANCHORS[Gladdy.db.racialPos], parent, Gladdy.db.racialPos, -Gladdy.db.padding + Gladdy.db.racialXOffset, Gladdy.db.racialYOffset)
-	elseif (Gladdy.db.racialPos == "TOP") then
-		racial:SetPoint(ANCHORS[Gladdy.db.racialPos], parent, Gladdy.db.racialPos, Gladdy.db.racialXOffset, Gladdy.db.padding + Gladdy.db.racialYOffset)
-	elseif (Gladdy.db.racialPos == "BOTTOM") then
-		racial:SetPoint(ANCHORS[Gladdy.db.racialPos], parent, Gladdy.db.racialPos, Gladdy.db.racialXOffset, -Gladdy.db.padding + Gladdy.db.racialYOffset)
-	end
-	return Gladdy.db.newLayout
 end

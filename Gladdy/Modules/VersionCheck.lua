@@ -1,8 +1,21 @@
 local tonumber, tostring, str_format = tonumber, tostring, string.format
 
 local UnitName = UnitName
-local IsInGroup, IsInRaid = _IsInGroup, _IsInRaid
-local LE_PARTY_CATEGORY_HOME, LE_PARTY_CATEGORY_INSTANCE = LE_PARTY_CATEGORY_HOME, LE_PARTY_CATEGORY_INSTANCE
+local GetNumPartyMembers = GetNumPartyMembers
+local GetNumRaidMembers = GetNumRaidMembers
+
+-- Add compatibility functions for WoW 3.3.5
+local function IsInGroup()
+    return GetNumPartyMembers() > 0 or GetNumRaidMembers() > 0
+end
+
+local function IsInRaid()
+    return GetNumRaidMembers() > 0
+end
+
+-- Create constants that don't exist in 3.3.5
+local LE_PARTY_CATEGORY_HOME = 1
+local LE_PARTY_CATEGORY_INSTANCE = 2
 
 local Gladdy = LibStub("Gladdy")
 
@@ -23,11 +36,10 @@ end
 
 function VersionCheck:JOINED_ARENA()
     self:RegisterComm("GladdyVCheck", VersionCheck.OnCommReceived)
-    if IsInRaid(LE_PARTY_CATEGORY_HOME) then
+    -- Simplified for WoW 3.3.5, which doesn't have instance/home party categories
+    if IsInRaid() then
         self:SendCommMessage("GladdyVCheck", str_format("%.2f", Gladdy.version_num), "RAID", self.playerName)
-    elseif IsInGroup(LE_PARTY_CATEGORY_INSTANCE) or IsInRaid(LE_PARTY_CATEGORY_INSTANCE) then
-        self:SendCommMessage("GladdyVCheck", str_format("%.2f", Gladdy.version_num), "INSTANCE_CHAT", self.playerName)
-    elseif IsInGroup(LE_PARTY_CATEGORY_HOME) then
+    elseif IsInGroup() then
         self:SendCommMessage("GladdyVCheck", str_format("%.2f", Gladdy.version_num), "PARTY", self.playerName)
     end
 end

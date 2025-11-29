@@ -186,13 +186,22 @@ function Gladdy:GetSpecSpells()
 	return specSpells
 end
 
+-- Function to check if a player's spec is enabled
+-- In WoW 3.3.5, we can't directly check specs, so we assume all specs are enabled
+function Gladdy:SpecEnabled(class, specRequired, unit)
+	-- In Classic/WoW 3.3.5, there's no proper way to detect specs
+	-- For compatibility, we'll just assume all specs are enabled
+	-- This could be improved by checking for certain abilities or talents
+	return true
+end
+
 local importantAuras = {
 	--- Crowd control
-	[GetSpellInfo(33786)] = { -- Cyclone
-		track = AURA_TYPE_DEBUFF,
-		priority = 40,
-		spellID = 33786,
-	},
+    [GetSpellInfo(33786)] = {  -- Cyclone
+        track = AURA_TYPE_DEBUFF,
+        priority = 40,
+        spellID = 33786,
+    },
 	[GetSpellInfo(18658)] = { -- Hibernate
 		track = AURA_TYPE_DEBUFF,
 		priority = 40,
@@ -505,6 +514,7 @@ local importantAuras = {
 		priority = 20,
 		spellID = 24259,
 	},
+
 	[GetSpellInfo(1330)] = { -- Garrote - Silence
 		track = AURA_TYPE_DEBUFF,
 		priority = 20,
@@ -1087,7 +1097,7 @@ function Gladdy:Racials()
 end
 
 local constellations = {
-    [371796] = {
+	[371796] = {
         id = 375015,
         icon = select(3, GetSpellInfo(375015)),
         cd = 120,
@@ -1202,7 +1212,7 @@ local constellations = {
         id = 375040,
         icon = select(3, GetSpellInfo(375040)),
         cd = 120,
-    },
+    }
 }
 
 function Gladdy:Constellations()

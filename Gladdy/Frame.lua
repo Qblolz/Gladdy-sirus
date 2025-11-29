@@ -119,7 +119,6 @@ function Gladdy:CreateFrame()
 end
 
 function Gladdy:UpdateFrame()
-
     if (InCombatLockdown()) then
         return
     end
@@ -141,7 +140,6 @@ function Gladdy:UpdateFrame()
 
     -- Highlight
     margin = margin + highlightBorderSize
-    margin, height = Gladdy:LegacyPositioning(margin, height, teamSize)
 
     -- GrowDirection
     if (self.db.growDirection == "LEFT" or self.db.growDirection == "RIGHT") then
@@ -149,7 +147,6 @@ function Gladdy:UpdateFrame()
     end
 
     self.frame:SetScale(self.db.frameScale)
-    --self:PixelPerfectScale(false)
     self.frame:SetWidth(self.db.barWidth + highlightBorderSize)
     self.frame:SetHeight(height)
     self.frame:ClearAllPoints()
@@ -229,7 +226,6 @@ function Gladdy:UpdateFrame()
             end
         end
 
-
         for _, v in self:IterModules() do
             self:Call(v, "UpdateFrame", "arena" .. i)
         end
@@ -248,8 +244,8 @@ function Gladdy:UpdateFrame()
     elseif Gladdy.db.hideBlizzard == "never" then
         Gladdy:BlizzArenaSetAlpha(1)
     end
-    if (not Gladdy.db.newLayout) then
-        Gladdy.db.newLayout = true
+
+    if not self.db.bottomMargin then
         --get margin
         local arena1Bottom
         local arena2Top
@@ -266,7 +262,7 @@ function Gladdy:UpdateFrame()
             arena1Bottom = self.buttons["arena1"].secure:GetRight()
             arena2Top = self.buttons["arena2"].secure:GetLeft()
         end
-        Gladdy.db.bottomMargin = math_abs(arena1Bottom - arena2Top)
+        self.db.bottomMargin = math_abs(arena1Bottom - arena2Top)
         Gladdy:UpdateFrame()
     end
 end
@@ -366,34 +362,14 @@ end
 
 
 
-function Gladdy:SetPosition(frame, unit, xOffsetDB, yOffsetDB, newLayout, module)
+function Gladdy:SetPosition(frame, unit, xOffsetDB, yOffsetDB, module)
     local button = self.buttons[unit]
     if not button or not frame or not xOffsetDB or not yOffsetDB then
         return
     end
 
-    if (not newLayout) then
-        --Gladdy:Debug("INFO", name, "old X/Y:", frame:GetCenter())
-        local xOffset, yOffset = frame:GetLeft(), frame:GetTop()
-        if not xOffset or not yOffset then
-            xOffset = frame:GetCenter()-- - frame:GetWidth()/2
-            yOffset = select(2, frame:GetCenter())-- + frame:GetHeight()/2
-        end
-        local x,y = button.healthBar:GetLeft(), button.healthBar:GetTop()
-        local newXOffset = math_abs(x - xOffset) * (x > xOffset and -1 or 1)
-        local newYOffset = math_abs(y - yOffset) * (y > yOffset and -1 or 1)
-        frame:ClearAllPoints()
-        frame:SetPoint("TOPLEFT", button.healthBar, "TOPLEFT", newXOffset, newYOffset)
-        --Gladdy:Debug("INFO", name, "new X/Y:", frame:GetCenter())
-        if unit == "arena1" then
-            Gladdy.db[xOffsetDB] = newXOffset
-            Gladdy.db[yOffsetDB] = newYOffset
-            LibStub("AceConfigRegistry-3.0"):NotifyChange("Gladdy")
-        end
-    else
-        frame:ClearAllPoints()
-        frame:SetPoint("TOPLEFT", button.healthBar, "TOPLEFT", Gladdy.db[xOffsetDB], Gladdy.db[yOffsetDB])
-    end
+    frame:ClearAllPoints()
+    frame:SetPoint("TOPLEFT", button.healthBar, "TOPLEFT", Gladdy.db[xOffsetDB], Gladdy.db[yOffsetDB])
     if (self.newDefaults[module.name]) then
         for k,v in pairs(self.newDefaults[module.name]) do
             module.defaults[k] = v
@@ -475,40 +451,6 @@ end
 -- LAGACY SUPPORT
 
 ---------------------------
-
-function Gladdy:LegacyPositioning(margin, height, teamSize)
-    if not Gladdy.db.newLayout then
-        for k,v in pairs(Gladdy.legacy) do
-            if Gladdy.db[k] == nil then
-                Gladdy:Debug("INFO", "Gladdy:LegacyPositioning write", k,v)
-                Gladdy.db[k] = v
-            else
-                Gladdy:Debug("INFO", "Gladdy:LegacyPositioning found", k,v)
-            end
-        end
-        if (self.db.cooldownYPos == "TOP" or self.db.cooldownYPos == "BOTTOM") and self.db.cooldown then
-            margin = margin + self.db.cooldownSize
-            height = height + self.db.cooldownSize * (teamSize - 1)
-        end
-        if (self.db.buffsCooldownPos == "TOP" or self.db.buffsCooldownPos == "BOTTOM") and self.db.buffsEnabled then
-            margin = margin + self.db.buffsIconSize
-            height = height + self.db.buffsIconSize * (teamSize - 1)
-        end
-        if (self.db.buffsBuffsCooldownPos == "TOP" or self.db.buffsBuffsCooldownPos == "BOTTOM") and self.db.buffsEnabled then
-            margin = margin + self.db.buffsBuffsIconSize
-            height = height + self.db.buffsBuffsIconSize * (teamSize - 1)
-        end
-        if self.db.buffsCooldownPos == "TOP" and self.db.cooldownYPos == "TOP" and self.db.cooldown and self.db.buffsEnabled then
-            margin = margin + 1
-            height = height + (teamSize - 1)
-        end
-        if self.db.buffsCooldownPos == "BOTTOM" and self.db.cooldownYPos == "BOTTOM" and self.db.cooldown and self.db.buffsEnabled then
-            margin = margin + 1
-            height = height + (teamSize - 1)
-        end
-    end
-    return margin, height
-end
 
 function Gladdy:PositionButton(button, i, leftSize, rightSize, powerBarHeight, margin)
     if (self.db.growDirection == "TOP") then

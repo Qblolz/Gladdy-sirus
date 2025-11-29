@@ -290,20 +290,16 @@ function Pets:UpdateFrame(unitId)
     self.frames[unit]:SetWidth(Gladdy.db.petWidth)
     self.frames[unit]:SetHeight(Gladdy.db.petHeight)
 
-    Gladdy:SetPosition(self.frames[unit], unitId, "petXOffset", "petYOffset", Pets:LegacySetPosition(unit, unitId), Pets)
+    if not Gladdy.db.petGroup or unit == "arenapet1" then
+        Gladdy:SetPosition(self.frames[unit], unitId, "petXOffset", "petYOffset", Pets)
+    end
 
-    if (Gladdy.db.petGroup) then
-        if (unit == "arenapet1") then
-            self.frames[unit]:ClearAllPoints()
-            self.frames[unit]:SetPoint("TOPLEFT", Gladdy.buttons[unitId].healthBar, "TOPLEFT", Gladdy.db.petXOffset, Gladdy.db.petYOffset)
-        else
+    if Gladdy.db.petGroup then
+        if unit ~= "arenapet1" then
             local previousPet = "arenapet" .. string_gsub(unit, "arenapet", "") - 1
             self.frames[unit]:ClearAllPoints()
-            self.frames[unit]:SetPoint("TOPLEFT", self.frames[previousPet], "BOTTOMLEFT", 0, - Gladdy.db.petMargin)
+            self.frames[unit]:SetPoint("TOPLEFT", self.frames[previousPet], "BOTTOMLEFT", 0, -Gladdy.db.petMargin)
         end
-    else
-        self.frames[unit]:ClearAllPoints()
-        self.frames[unit]:SetPoint("TOPLEFT", Gladdy.buttons[unitId].healthBar, "TOPLEFT", Gladdy.db.petXOffset, Gladdy.db.petYOffset)
     end
 
     healthBar.portrait:SetHeight(Gladdy.db.petHeight)
@@ -391,7 +387,7 @@ end
 
 function Pets:GetOptions()
     return {
-        header = {
+        headerPets = {
             type = "header",
             name = L["Pets"],
             order = 2,
@@ -656,31 +652,4 @@ function Pets:GetOptions()
             },
         },
     }
-end
-
----------------------------
-
--- LAGACY HANDLER
-
----------------------------
-
-function Pets:LegacySetPosition(unit, unitId)
-    if Gladdy.db.newLayout then
-        return Gladdy.db.newLayout
-    end
-    self.frames[unit]:ClearAllPoints()
-    self.frames[unit]:SetPoint("LEFT", Gladdy.buttons[unitId].healthBar, "RIGHT", Gladdy.db.petXOffset, Gladdy.db.petYOffset)
-    if (Gladdy.db.petGroup) then
-        if (unit == "arenapet1") then
-            self.frames[unit]:SetPoint("LEFT", Gladdy.buttons[unitId].healthBar, "RIGHT", Gladdy.db.petXOffset, Gladdy.db.petYOffset)
-        else
-            local previousPet = "arenapet" .. string_gsub(unit, "arenapet", "") - 1
-            self.frames[unit]:ClearAllPoints()
-            self.frames[unit]:SetPoint("TOPLEFT", self.frames[previousPet], "BOTTOMLEFT", 0, - Gladdy.db.petMargin)
-        end
-    else
-        self.frames[unit]:ClearAllPoints()
-        self.frames[unit]:SetPoint("LEFT", Gladdy.buttons[unitId].healthBar, "RIGHT", Gladdy.db.petXOffset, Gladdy.db.petYOffset)
-    end
-    return Gladdy.db.newLayout
 end

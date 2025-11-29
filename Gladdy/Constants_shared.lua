@@ -43,56 +43,11 @@ local arenaTimer = {
         [15] = "Fifteen seconds until the Arena battle begins!",
         [0] = "The Arena battle has begun!",
     },
-    ["esES"] = {
-        [60] = "¡Un minuto hasta que dé comienzo la batalla en arena!",
-        [30] = "¡Treinta segundos hasta que comience la batalla en arena!",
-        [15] = "¡Quince segundos hasta que comience la batalla en arena!",
-        [0] = "¡La batalla en arena ha comenzado!",
-    },
-    ["ptBR"] = {
-        [60] = "Um minuto até a batalha na Arena começar!",
-        [30] = "Trinta segundos até a batalha na Arena começar!",
-        [15] = "Quinze segundos até a batalha na Arena começar!",
-        [0] = "A batalha na Arena começou!",
-    },
-    ["deDE"] = {
-        [60] = "Noch eine Minute bis der Arenakampf beginnt!",
-        [30] = "Noch dreißig Sekunden bis der Arenakampf beginnt!",
-        [15] = "Noch fünfzehn Sekunden bis der Arenakampf beginnt!",
-        [0] = "Der Arenakampf hat begonnen!",
-    },
-    ["frFR"] = {
-        [60] = "Le combat d'arène commence dans une minute\194\160!",
-        [30] = "Le combat d'arène commence dans trente secondes\194\160!",
-        [15] = "Le combat d'arène commence dans quinze secondes\194\160!",
-        [0] = "Le combat d'arène commence\194\160!",
-    },
     ["ruRU"] = {
         [60] = "Одна минута до начала боя на арене!",
         [30] = "Тридцать секунд до начала боя на арене!",
         [15] = "Пятнадцать секеунд до начала боя на арене!",
         [0] = "Битва на арене началась!",
-    },
-    ["itIT"] = { -- TODO
-        -- Beta has no itIT version available?
-    },
-    ["koKR"] = {
-        [60] = "투기장 전투 시작 1분 전입니다!",
-        [30] = "투기장 전투 시작 30초 전입니다!",
-        [15] = "투기장 전투 시작 15초 전입니다!",
-        [0] = "투기장 전투가 시작되었습니다!",
-    },
-    ["zhCN"] = {
-        [60] = "竞技场战斗将在一分钟后开始！",
-        [30] = "竞技场战斗将在三十秒后开始！",
-        [15] = "竞技场战斗将在十五秒后开始！",
-        [0] = "竞技场的战斗开始了！",
-    },
-    ["zhTW"] = {
-        [60] = "1分鐘後競技場戰鬥開始!",
-        [30] = "30秒後競技場戰鬥開始!",
-        [15] = "15秒後競技場戰鬥開始!",
-        [0] = "競技場戰鬥開始了!",
     },
 }
 arenaTimer["esMX"] = arenaTimer["esES"]
@@ -106,26 +61,8 @@ function Gladdy:GetArenaTimer()
     end
 end
 
-Gladdy.legacy = {
-    castBarPos = "LEFT",
-    buffsCooldownPos = "TOP",
-    buffsBuffsCooldownPos = "BOTTOM",
-    classIconPos = "LEFT",
-    ciAnchor = "healthBar",
-    ciPos = "TOP",
-    cooldownYPos = "TOP",
-    cooldownXPos = "LEFT",
-    drCooldownPos = "RIGHT",
-    racialAnchor = "trinket",
-    racialPos = "RIGHT",
-    trinketPos = "RIGHT",
-    padding = 1,
-    growUp = false,
-}
-
 Gladdy.newDefaults = {
     ["bottomMargin"] = 94.99996948242188,
-    ["newLayout"] = true,
     Pets = {
         ["petYOffset"] = -81.99993896484375,
         ["petXOffset"] = 181,
@@ -259,67 +196,6 @@ function Gladdy:GetSpellSchoolColors()
 end
 
 ---------------------
--- TRINKET STUFF
----------------------
-
-local pvpTrinkets = { -- [itemID] = cd in ms
-    --wotlk
-    [59752] = 120000,
-    [51377] = 120000,
-    [51378] = 120000,
-    [46083] = 120000,
-    [46085] = 120000,
-    [46081] = 120000,
-    [46084] = 120000,
-    [46082] = 120000,
-    [42122] = 120000,
-    [42123] = 120000,
-    --tbc
-    [37864] = 120000,
-    [37865] = 120000,
-    [28235] = 120000,
-    [30348] = 120000,
-    [28238] = 120000,
-    [30351] = 120000,
-    [28236] = 120000,
-    [30349] = 120000,
-    [28234] = 120000,
-    [28237] = 120000,
-    [30350] = 120000,
-    [28240] = 120000,
-    [28243] = 120000,
-    [30345] = 120000,
-    [28241] = 120000,
-    [30343] = 120000,
-    [28239] = 120000,
-    [30346] = 120000,
-    [28242] = 120000,
-    [30344] = 120000,
-    [29593] = 120000,
-    [29593] = 300000,
-    [18859] = 300000,
-    [18857] = 300000,
-    [18864] = 300000,
-    [18854] = 300000,
-    [18862] = 300000,
-    [18858] = 300000,
-    [18856] = 300000,
-    [18863] = 300000,
-    [18834] = 300000,
-    [18851] = 300000,
-    [18845] = 300000,
-    [18852] = 300000,
-    [29592] = 300000,
-    [18850] = 300000,
-    [18846] = 300000,
-    [18853] = 300000,
-}
-
-function Gladdy:GetPvpTrinkets()
-    return pvpTrinkets
-end
-
----------------------
 -- TOTEM STUFF
 ---------------------
 
@@ -432,9 +308,9 @@ for Name, Data in pairs(totemData) do
 
 	if ( TotemRanks ) then
 		for i=1, TotemRanks do
-			totemNameToTotemData[TotemName..totemNumeric[i]] = Data
+			totemNameToTotemData[string_lower(TotemName..totemNumeric[i])] = Data
 		end
 	else
-		totemNameToTotemData[TotemName] = Data
+		totemNameToTotemData[string_lower(TotemName)] = Data
 	end
 end

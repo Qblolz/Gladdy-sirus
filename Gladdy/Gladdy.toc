@@ -1,8 +1,8 @@
 ## Interface: 30300
 ## Title: Gladdy - WotLK
-## Version: 2.35.22
+## Version: 2.37.0
 ## Notes: The most powerful arena AddOn for WoW 3.3.5
-## Author: XiconQoo, DnB_Junkee, Knall, Tsoukie
+## Author: XiconQoo, DnB_Junkee, Knall, Tsoukie, Qb, x3k
 ## SavedVariables: GladdyXZ
 ## OptionalDeps: SharedMedia, Blizzard_CombatLog, Blizzard_ArenaUI, Blizzard_CombatText
 ## X-Sirus-Update: https://github.com/Qblolz/Gladdy-sirus/tree/master/Gladdy
@@ -18,7 +18,7 @@ Constants_shared.lua
 Constants_Wrath.lua
 ImportStrings.lua
 
-Modules\Announcements.lua
+#Modules\Announcements.lua
 Modules\Healthbar.lua
 Modules\Powerbar.lua
 Modules\Auras.lua
@@ -28,7 +28,6 @@ Modules\Clicks.lua
 Modules\Diminishings.lua
 Modules\Highlight.lua
 Modules\TotemPlates.lua
-Modules\TotemPulse.lua
 Modules\Trinket.lua
 Modules\Racial.lua
 Modules\Cooldowns.lua

@@ -12,10 +12,11 @@ local CombatIndicator = Gladdy:NewModule("Combat Indicator", nil, {
     ciWidthFactor = 1,
     ciXOffset = 0,
     ciYOffset = -31,
-    ciBorderStyle = "Interface\\AddOns\\Gladdy\\Images\\Border_rounded_blp",
+    ciBorderStyle = "Interface\\AddOns\\Gladdy\\Images\\Border_rounded_blp.blp",
     ciBorderColor = { r = 0, g = 0, b = 0, a = 1 },
     ciFrameStrata = "HIGH",
     ciFrameLevel = 5,
+    ciIconZoomed = true, -- Set to true by default for WoW 3.3.5 compatibility
 })
 
 function CombatIndicator:Initialize()
@@ -45,15 +46,26 @@ function CombatIndicator:CreateFrame(unit)
     ciFrame:SetHeight(Gladdy.db.ciSize)
     ciFrame:SetWidth(Gladdy.db.ciSize * Gladdy.db.ciWidthFactor)
 
-    ciFrame.texture = ciFrame:CreateTexture(nil, "OVERLAY")
-    --ciFrame.texture:SetMask("Interface\\AddOns\\Gladdy\\Images\\mask")
+    ciFrame.texture = ciFrame:CreateTexture(nil, "ARTWORK")
     ciFrame.texture:SetTexture(self.combatIndicatorIcon)
     ciFrame.texture:SetAllPoints(ciFrame)
+    
+    -- Apply texture coordinates based on zoom setting - simpler approach
+    if Gladdy.db.ciIconZoomed then
+        ciFrame.texture:SetTexCoord(0.1, 0.9, 0.1, 0.9)
+    else
+        ciFrame.texture:SetTexCoord(0, 1, 0, 1)
+    end
 
     ciFrame.border = ciFrame:CreateTexture(nil, "OVERLAY")
     ciFrame.border:SetAllPoints(ciFrame)
     ciFrame.border:SetTexture(Gladdy.db.ciBorderStyle)
-    ciFrame.border:SetVertexColor(Gladdy:SetColor(Gladdy.db.ciBorderColor))
+    if Gladdy.db.ciBorderStyle == "None" then
+        ciFrame.border:Hide()
+    else
+        ciFrame.border:Show()
+        ciFrame.border:SetVertexColor(Gladdy:SetColor(Gladdy.db.ciBorderColor))
+    end
 
     self.frames[unit] = ciFrame
     button.ciFrame = ciFrame
@@ -80,9 +92,25 @@ function CombatIndicator:UpdateFrame(unit)
     ciFrame:SetHeight(Gladdy.db.ciSize)
     ciFrame:SetWidth(Gladdy.db.ciSize * Gladdy.db.ciWidthFactor)
     ciFrame.border:SetTexture(Gladdy.db.ciBorderStyle)
-    ciFrame.border:SetVertexColor(Gladdy:SetColor(Gladdy.db.ciBorderColor))
+    if Gladdy.db.ciBorderStyle == "None" then
+        ciFrame.border:Hide()
+    else
+        ciFrame.border:Show()
+        ciFrame.border:SetVertexColor(Gladdy:SetColor(Gladdy.db.ciBorderColor))
+    end
+    
+    -- Handle the icon zooming - simpler approach
+    local testAgain = false
+    if Gladdy.db.ciIconZoomed then
+        ciFrame.texture:SetTexCoord(0.1, 0.9, 0.1, 0.9)
+    else
+        ciFrame.texture:SetTexCoord(0, 1, 0, 1)
+        if Gladdy.frame.testing then
+            testAgain = true
+        end
+    end
 
-    Gladdy:SetPosition(ciFrame, unit, "ciXOffset", "ciYOffset", CombatIndicator:LegacySetPosition(ciFrame, unit), CombatIndicator)
+    Gladdy:SetPosition(ciFrame, unit, "ciXOffset", "ciYOffset", CombatIndicator)
 
     ciFrame:SetAlpha(Gladdy.db.ciAlpha)
 
@@ -90,6 +118,10 @@ function CombatIndicator:UpdateFrame(unit)
         ciFrame:Hide()
     else
         ciFrame:Show()
+        if testAgain then
+            CombatIndicator:Reset()
+            CombatIndicator:Test()
+        end
     end
     if (unit == "arena1") then
         Gladdy:CreateMover(ciFrame, "ciXOffset", "ciYOffset", L["Combat Indicator"],
@@ -127,7 +159,7 @@ end
 
 function CombatIndicator:GetOptions()
     return {
-        header = {
+        headerCombatIndicator = {
             type = "header",
             name = L["Combat Indicator"],
             order = 2,
@@ -155,13 +187,20 @@ function CombatIndicator:GetOptions()
                             name = L["Frame"],
                             order = 1,
                         },
+                        ciIconZoomed = Gladdy:option({
+                            type = "toggle",
+                            name = L["Zoomed Icon"],
+                            desc = L["Zooms the icon to remove borders"],
+                            order = 2,
+                            width = "full",
+                        }),
                         ciSize = Gladdy:option({
                             type = "range",
                             name = L["Icon size"],
                             min = 5,
                             max = 100,
                             step = 1,
-                            order = 2,
+                            order = 3,
                             width = "full",
                         }),
                         ciWidthFactor = Gladdy:option({
@@ -271,24 +310,4 @@ function CombatIndicator:GetOptions()
             },
         },
     }
-end
-
----------------------------
-
--- LAGACY HANDLER
-
----------------------------
-
-function CombatIndicator:LegacySetPosition(ciFrame, unit)
-    if Gladdy.db.newLayout then
-        return Gladdy.db.newLayout
-    end
-    -- LEGACY options
-    local ANCHORS = { ["LEFT"] = "RIGHT", ["RIGHT"] = "LEFT", ["BOTTOM"] = "TOP", ["TOP"] = "BOTTOM"}
-    local ciAnchor = Gladdy.db.ciAnchor or Gladdy.legacy.ciAnchor
-    local ciPos = Gladdy.db.ciPos
-
-    ciFrame:ClearAllPoints()
-    ciFrame:SetPoint(ANCHORS[ciPos], Gladdy.buttons[unit][ciAnchor], ciPos, Gladdy.db.ciXOffset, Gladdy.db.ciYOffset)
-    return Gladdy.db.newLayout
 end

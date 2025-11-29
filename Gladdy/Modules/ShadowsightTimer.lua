@@ -38,12 +38,18 @@ function ShadowsightTimer:Initialize()
 end
 
 function ShadowsightTimer:Reset()
-    self.anchor:Hide()
-    for i=1,2 do
-        self["timerFrame" .. i].active = false
-        self["timerFrame" .. i]:SetScript("OnUpdate", nil)
-        self["timerFrame" .. i].font:SetTextColor(1, 0.8, 0)
+    if self.anchor then
+        self.anchor:Hide()
     end
+    
+    for i=1,2 do
+        if self["timerFrame" .. i] then
+            self["timerFrame" .. i].active = false
+            self["timerFrame" .. i]:SetScript("OnUpdate", nil)
+            self["timerFrame" .. i].font:SetTextColor(1, 0.8, 0)
+        end
+    end
+    
     self:UnregisterEvent("CHAT_MSG_BG_SYSTEM_NEUTRAL")
     self:SetScript("OnEvent", nil)
 end
@@ -90,7 +96,7 @@ function ShadowsightTimer:CreateAnchor()
     self.anchor:EnableMouse(true)
     self.anchor:SetWidth(35)
     self.anchor:SetHeight(17)
-    self.anchor:SetPoint(Gladdy.db.shadowsightTimerRelPoint1, nil, Gladdy.db.shadowsightTimerRelPoint, Gladdy.db.shadowsightTimerX, Gladdy.db.shadowsightTimerY)
+    self.anchor:SetPoint(Gladdy.db.shadowsightTimerRelPoint1, nil, Gladdy.db.shadowsightTimerRelPoint2, Gladdy.db.shadowsightTimerX, Gladdy.db.shadowsightTimerY)
     self.anchor:SetScript("OnMouseDown",function(self) self:StartMoving() end)
     self.anchor:SetScript("OnMouseUp",function(self)
         self:StopMovingOrSizing()
@@ -120,7 +126,7 @@ function ShadowsightTimer:UpdateFrameOnce()
     self.timerFrame2:SetFrameStrata(Gladdy.db.shadowsightTimerFrameStrata)
     self.timerFrame2:SetFrameLevel(Gladdy.db.shadowsightTimerFrameLevel)
 
-    if Gladdy.db.shadowsightTimerEnabled then
+    if Gladdy.db.shadowsightTimerEnabled and self.anchor then
         self.anchor:SetScale(Gladdy.db.shadowsightTimerScale)
         self.anchor:ClearAllPoints()
         self.anchor:SetPoint(Gladdy.db.shadowsightTimerRelPoint1, nil, Gladdy.db.shadowsightTimerRelPoint2, Gladdy.db.shadowsightTimerX, Gladdy.db.shadowsightTimerY)
@@ -139,10 +145,12 @@ function ShadowsightTimer:UpdateFrameOnce()
             ShadowsightTimer:NotifyStart()
         end
     else
-        self.anchor:SetScale(Gladdy.db.shadowsightTimerScale)
-        self.anchor:ClearAllPoints()
-        self.anchor:SetPoint(Gladdy.db.shadowsightTimerRelPoint1, nil, Gladdy.db.shadowsightTimerRelPoint2, Gladdy.db.shadowsightTimerX, Gladdy.db.shadowsightTimerY)
-        self.anchor:Hide()
+        if self.anchor then
+            self.anchor:SetScale(Gladdy.db.shadowsightTimerScale)
+            self.anchor:ClearAllPoints()
+            self.anchor:SetPoint(Gladdy.db.shadowsightTimerRelPoint1, nil, Gladdy.db.shadowsightTimerRelPoint2, Gladdy.db.shadowsightTimerX, Gladdy.db.shadowsightTimerY)
+            self.anchor:Hide()
+        end
     end
 end
 
@@ -156,11 +164,17 @@ function ShadowsightTimer:JOINED_ARENA()
     if Gladdy.db.shadowsightTimerEnabled then
         self:RegisterEvent("CHAT_MSG_BG_SYSTEM_NEUTRAL")
         self:SetScript("OnEvent", ShadowsightTimer.OnEvent)
+        
         for i=1,2 do
-            self["timerFrame" .. i].font:SetText("0:60")
-            self["timerFrame" .. i].font:SetTextColor(1, 0.8, 0)
+            if self["timerFrame" .. i] then
+                self["timerFrame" .. i].font:SetText("0:90")
+                self["timerFrame" .. i].font:SetTextColor(1, 0.8, 0)
+            end
         end
-        self.anchor:Show()
+        
+        if self.anchor then
+            self.anchor:Show()
+        end
     end
 end
 
@@ -189,10 +203,19 @@ end
 
 function ShadowsightTimer:Test()
     if Gladdy.db.shadowsightTimerEnabled then
-        self.anchor:Show()
+        if self.anchor then
+            self.anchor:Show()
+        end
+        
         ShadowsightTimer:JOINED_ARENA()
-        self:Start(20, self.timerFrame1)
-        self:Start(25, self.timerFrame2)
+        
+        if self.timerFrame1 then
+            self:Start(20, self.timerFrame1)
+        end
+        
+        if self.timerFrame2 then
+            self:Start(25, self.timerFrame2)
+        end
     end
 end
 
@@ -237,6 +260,10 @@ function ShadowsightTimer.OnUpdate(self, elapsed)
 end
 
 function ShadowsightTimer:NotifyStart()
+    if not self.timerFrame1 or not self.timerFrame2 then
+        return
+    end
+    
     local show = Gladdy.db.shadowsightTimerShowTwoTimer
     if self.timerFrame1.active and self.timerFrame2.active then
         if self.timerFrame1.endTime < self.timerFrame2.endTime then
@@ -260,6 +287,10 @@ function ShadowsightTimer:NotifyStart()
     end
 end
 function ShadowsightTimer:NotifyEnd()
+    if not self.timerFrame1 or not self.timerFrame2 then
+        return
+    end
+    
     local show = Gladdy.db.shadowsightTimerShowTwoTimer
     if self.timerFrame1.active then
         self.timerFrame1:SetAlpha(1)
@@ -273,6 +304,10 @@ function ShadowsightTimer:NotifyEnd()
     end
 end
 function ShadowsightTimer:GetHiddenTimer()
+    if not self.timerFrame1 or not self.timerFrame2 then
+        return self.timerFrame1 or self.timerFrame2
+    end
+    
     if self.timerFrame1.active and self.timerFrame2.active then
         return self.timerFrame1.endTime < self.timerFrame2.endTime and self.timerFrame1 or self.timerFrame2
     else

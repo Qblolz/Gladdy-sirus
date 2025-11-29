@@ -4,10 +4,9 @@ local UnitInRaid = UnitInRaid
 local UnitInParty = UnitInParty
 local UnitInRange = UnitInRange
 local CheckInteractDistance = CheckInteractDistance
-local C_Timer = C_Timer
 local UnitIsUnit = UnitIsUnit
 local UnitClass = UnitClass
-local GetSpellInfo = C_GetSpellInfo
+local GetSpellInfo = GetSpellInfo
 local RAID_CLASS_COLORS = RAID_CLASS_COLORS
 local LOCALIZED_CLASS_NAMES_MALE = LOCALIZED_CLASS_NAMES_MALE
 local CLASS_ICON_TCOORDS = CLASS_ICON_TCOORDS
@@ -138,21 +137,25 @@ function RangeCheck:SetColor(button, oorFac)
         button.powerBar.powerText:SetTextColor(Gladdy.db.powerBarFontColor.r, Gladdy.db.powerBarFontColor.g, Gladdy.db.powerBarFontColor.b, Gladdy.db.powerBarFontColor.a)
     end
 
-    if Gladdy.db.rangeCheckTrinket then
+    if Gladdy.db.rangeCheckTrinket and button.trinket then
         button.trinket.texture:SetVertexColor(1/oorFac, 1/oorFac, 1/oorFac)
-    else
+    elseif button.trinket then
         button.trinket.texture:SetVertexColor(1, 1, 1)
     end
-    if Gladdy.db.rangeCheckClassIcon then
+    if Gladdy.db.rangeCheckClassIcon and button.classIcon then
         button.classIcon.texture:SetVertexColor(1/oorFac, 1/oorFac, 1/oorFac)
-        button.aura.icon:SetVertexColor(1/oorFac, 1/oorFac, 1/oorFac)
-    else
+        if button.aura then
+            button.aura.icon:SetVertexColor(1/oorFac, 1/oorFac, 1/oorFac)
+        end
+    elseif button.classIcon then
         button.classIcon.texture:SetVertexColor(1, 1, 1)
-        button.aura.icon:SetVertexColor(1, 1, 1)
+        if button.aura then
+            button.aura.icon:SetVertexColor(1, 1, 1)
+        end
     end
-    if Gladdy.db.rangeCheckRacial then
+    if Gladdy.db.rangeCheckRacial and button.racial then
         button.racial.texture:SetVertexColor(1/oorFac, 1/oorFac, 1/oorFac)
-    else
+    elseif button.racial then
         button.racial.texture:SetVertexColor(1, 1, 1)
     end
     button.lastState = oorFac
@@ -178,12 +181,12 @@ function RangeCheck:JOINED_ARENA()
     end
 end
 
-function RangeCheck.CheckRange(self)
-    local button = self.parent
+function RangeCheck.CheckRange(frame)
+    local button = frame
 
     local spell = Gladdy.db.rangeCheckDefaultSpells[RangeCheck.playerClass].min
 
-    if (not UnitIsConnected(button.unit) or UnitPhaseReason(button.unit)) then
+    if (not UnitIsConnected(button.unit) or UnitPhaseReason and UnitPhaseReason(button.unit)) then
         RangeCheck:SetRangeAlpha(button, false)
     elseif (spell) then
         RangeCheck:SetRangeAlpha(button, LSR.IsSpellInRange(spell, button.unit) == 1)
@@ -198,14 +201,16 @@ end
 
 function RangeCheck:CreateTimer(frame)
     if not frame.range then
-        frame.range = C_Timer:NewTicker(0.05, RangeCheck.CheckRange)
-        frame.range.parent = frame
+        frame.range = Gladdy:ScheduleRepeatingTimer(function() 
+            RangeCheck.CheckRange(frame)
+        end, 0.05)
+        frame.parent = frame
     end
 end
 
 function RangeCheck:CancelTimer(frame)
     if frame.range then
-        frame.range:Cancel()
+        Gladdy:CancelTimer(frame.range)
         frame.range = nil
     end
 end
@@ -217,7 +222,7 @@ function RangeCheck:ForceUpdate(frame)
         self:CancelTimer(frame)
     else
         self:CreateTimer(frame)
-        self.CheckRange(frame.parent)
+        self.CheckRange(frame)
     end
 end
 

@@ -259,3 +259,444 @@ function Gladdy:Dump(table, space)
         end
     end
 end
+
+-- Safely clear a cooldown frame, working in WoW 3.3.5 where some methods might be missing
+function Gladdy:SafeCooldownClear(cooldown)
+    if not cooldown then return end
+    
+    -- First try the Clear method if it exists
+    if cooldown.Clear then
+        cooldown:Clear()
+        return
+    end
+    
+    -- Fallback methods
+    cooldown:Hide()
+    cooldown:Show()
+    -- Set a 0-duration cooldown as another way to clear it
+    if cooldown.SetCooldown then
+        cooldown:SetCooldown(0, 0)
+    end
+end
+
+function Gladdy:CreateIconFrame(parent, name, config)
+    local frame = CreateFrame("Button", name, parent)
+    frame:EnableMouse(false)
+    frame:SetFrameStrata(config.frameStrata)
+    frame:SetFrameLevel(config.frameLevel)
+    
+    -- Создаем текстуру для иконки
+    frame.texture = frame:CreateTexture(nil, "BACKGROUND")
+    frame.texture:SetAllPoints(frame)
+    
+    -- Применяем настройки зума
+    if config.iconZoomed then
+        frame.texture:SetTexCoord(0.1, 0.9, 0.1, 0.9)
+    else
+        frame.texture:SetTexCoord(0, 1, 0, 1)
+    end
+    
+    -- Создаем бэкдроп только если указано
+    if config.hasBackdrop then
+        frame:SetBackdrop({
+            bgFile = config.backdropTexture,
+        })
+        frame:SetBackdropColor(0, 0, 0, 0)
+    end
+    
+    -- Создаем фрейм кулдауна
+    frame.cooldown = CreateFrame("Cooldown", nil, frame, "CooldownFrameTemplate")
+    frame.cooldown:SetAllPoints(frame)
+    frame.cooldown.noCooldownCount = true
+    frame.cooldown:SetFrameStrata(config.frameStrata)
+    frame.cooldown:SetFrameLevel(config.frameLevel + 1)
+    frame.cooldown:SetDrawEdge(true)
+    frame.cooldown:SetAlpha(config.cooldownAlpha)
+    frame.cooldown:SetScript("OnShow", function() frame.active = true end)
+    frame.cooldown:SetScript("OnHide", function() frame.active = false end)
+    
+    -- Создаем фрейм для текста кулдауна
+    frame.cooldownFrame = CreateFrame("Frame", nil, frame)
+    frame.cooldownFrame:SetAllPoints(frame)
+    frame.cooldownFrame:SetFrameStrata(config.frameStrata)
+    frame.cooldownFrame:SetFrameLevel(config.frameLevel + 2)
+    
+    -- Создаем текст кулдауна
+    frame.cooldownFont = frame.cooldownFrame:CreateFontString(nil, "OVERLAY")
+    frame.cooldownFont:SetFont(self:SMFetch("font", config.fontOption), 20, "OUTLINE")
+    frame.cooldownFont:SetJustifyH("CENTER")
+    frame.cooldownFont:SetPoint("CENTER")
+    frame.cooldownFont:SetAlpha(config.fontAlpha)
+    
+    -- Создаем рамку
+    frame.borderFrame = CreateFrame("Frame", nil, frame)
+    frame.borderFrame:SetAllPoints(frame)
+    frame.borderFrame:SetFrameStrata(config.frameStrata)
+    frame.borderFrame:SetFrameLevel(config.frameLevel + 3)
+    
+    -- Создаем текстуру рамки
+    frame.texture.overlay = frame.borderFrame:CreateTexture(nil, "OVERLAY")
+    frame.texture.overlay:SetAllPoints(frame)
+    frame.texture.overlay:Hide()
+    
+    -- Устанавливаем рамку если указана
+    if config.borderStyle and config.borderStyle ~= "None" then
+        frame.texture.overlay:SetTexture(config.borderStyle)
+        if config.borderColor then
+            local r, g, b, a = self:SetColor(config.borderColor)
+            frame.texture.overlay:SetVertexColor(r, g, b, a)
+        end
+        frame.texture.overlay:Show()
+    end
+    
+    -- Добавляем стандартный таймер обновления
+    frame:SetScript("OnUpdate", function(self, elapsed)
+        if not self.active then return end
+        
+        if self and self.timeLeft and self.timeLeft <= 0 then
+            self.active = false
+            self:StopCooldown()
+
+            if self.cooldownFont then
+                self.cooldownFont:SetText("")
+            end
+            -- Сбрасываем бэкдроп при окончании кулдауна
+            if config.hasBackdrop then
+                Gladdy:SendMessage("TRINKET_READY", self.unit)
+                if config.trinketColored then
+                    self:SetBackdropColor(Gladdy:SetColor(config.trinketColoredNoCd))
+                else
+                    self:SetBackdropColor(0, 0, 0, 0)
+                end
+            end
+        else
+            self.timeLeft = self.timeLeft - elapsed
+        end
+
+        if not self.cooldownFont or not config.fontEnabled then return end
+        
+        local timeLeft = self.timeLeft
+        local width = self:GetWidth()
+        
+        -- Специальная обработка для минут
+        if timeLeft > 60 then
+            self.cooldownFont:SetTextColor(1, 1, 0, config.fontAlpha)
+            self.cooldownFont:SetFont(Gladdy:SMFetch("font", config.fontOption), 
+                (width/2 - 0.15*width) * (config.fontScale), "OUTLINE")
+        elseif timeLeft >= 30 then
+            self.cooldownFont:SetTextColor(1, 1, 0, config.fontAlpha)
+            self.cooldownFont:SetFont(Gladdy:SMFetch("font", config.fontOption), 
+                (width/2 - 1) * (config.fontScale), "OUTLINE")
+        elseif timeLeft >= 11 then
+            self.cooldownFont:SetTextColor(1, 0.7, 0, config.fontAlpha)
+            self.cooldownFont:SetFont(Gladdy:SMFetch("font", config.fontOption), 
+                (width/2 - 1) * (config.fontScale), "OUTLINE")
+        elseif timeLeft >= 5 then
+            self.cooldownFont:SetTextColor(1, 0.7, 0, config.fontAlpha)
+            self.cooldownFont:SetFont(Gladdy:SMFetch("font", config.fontOption), 
+                (width/2 - 1) * (config.fontScale), "OUTLINE")
+        else
+            self.cooldownFont:SetTextColor(1, 0, 0, config.fontAlpha)
+            self.cooldownFont:SetFont(Gladdy:SMFetch("font", config.fontOption), 
+                (width/2 - 1) * (config.fontScale), "OUTLINE")
+        end
+        
+        Gladdy:FormatTimer(self.cooldownFont, timeLeft, timeLeft < 10, true)
+    end)
+    
+    -- Добавляем метод обновления конфига
+    function frame:UpdateConfig(newConfig)
+        -- Обновляем настройки фрейма
+        self:SetFrameStrata(newConfig.frameStrata)
+        self:SetFrameLevel(newConfig.frameLevel)
+        
+        -- Обновляем кулдаун
+        self.cooldown:SetFrameStrata(newConfig.frameStrata)
+        self.cooldown:SetFrameLevel((newConfig.frameLevel) + 1)
+        
+        -- Обрабатываем опцию отключения круга
+        if self.active then
+            if newConfig.disableCircle then
+                self.cooldown:SetAlpha(0)
+            else
+                self.cooldown:SetAlpha(newConfig.cooldownAlpha)
+            end
+        end
+        
+        -- Обновляем фрейм текста кулдауна
+        self.cooldownFrame:SetFrameStrata(newConfig.frameStrata or "MEDIUM")
+        self.cooldownFrame:SetFrameLevel((newConfig.frameLevel or 5) + 2)
+        
+        -- Обрабатываем опцию включения шрифта
+        if newConfig.fontEnabled then
+            self.cooldownFont:SetAlpha(newConfig.fontAlpha or 1)
+        else
+            self.cooldownFont:SetAlpha(0)
+            self.cooldownFont:SetText("")
+        end
+        
+        -- Обновляем рамку
+        self.borderFrame:SetFrameStrata(newConfig.frameStrata or "MEDIUM")
+        self.borderFrame:SetFrameLevel((newConfig.frameLevel or 5) + 3)
+        
+        -- Обновляем текстуру
+        if newConfig.iconZoomed then
+            self.texture:SetTexCoord(0.1, 0.9, 0.1, 0.9)
+        else
+            self.texture:SetTexCoord(0, 1, 0, 1)
+        end
+        
+        -- Обновляем рамку
+        self:UpdateBorder(newConfig.borderStyle, newConfig.borderColor)
+        
+        -- Сохраняем новый конфиг для использования в OnUpdate
+        config = newConfig
+    end
+    
+    function frame:StopCooldown()
+        if self.cooldown then
+            self.cooldown:SetCooldown(0, 0)
+            self.cooldown:Hide()
+        end
+    
+        if self.cooldownFont then
+            self.cooldownFont:SetText("")
+        end
+    end
+    
+    function frame:SetIcon(texture)
+        if texture then
+            self.texture:SetTexture(texture)
+        else
+            self.texture:SetTexture("")
+        end
+    end
+    
+    function frame:UpdateBorder(borderStyle, borderColor)
+        if not borderStyle or borderStyle == "None" then
+            self.texture.overlay:Hide()
+        else
+            self.texture.overlay:SetTexture(borderStyle)
+            if borderColor then
+                local r, g, b, a = Gladdy:SetColor(borderColor)
+                self.texture.overlay:SetVertexColor(r, g, b, a)
+            end
+            self.texture.overlay:Show()
+        end
+    end
+    
+    return frame
+end
+
+function Gladdy:CreateSomeFrame(parent, name, config)
+    local frame = CreateFrame("Frame", name, parent)
+    frame:EnableMouse(false)
+    frame:SetFrameStrata(config.frameStrata)
+    frame:SetFrameLevel(config.frameLevel)
+    
+    -- Создаем внутренний фрейм
+    frame.frame = CreateFrame("Frame", nil, frame)
+    frame.frame:SetPoint("TOPLEFT", frame, "TOPLEFT")
+    frame.frame:EnableMouse(false)
+    frame.frame:SetFrameStrata(config.frameStrata)
+    frame.frame:SetFrameLevel(config.frameLevel)
+    
+    -- Создаем фрейм кулдауна
+    frame.cooldown = CreateFrame("Cooldown", nil, frame.frame, "CooldownFrameTemplate")
+    frame.cooldown:SetAllPoints(frame.frame)
+    frame.cooldown.noCooldownCount = true
+    frame.cooldown:SetFrameStrata(config.frameStrata)
+    frame.cooldown:SetFrameLevel(config.frameLevel + 1)
+    frame.cooldown:SetReverse(true)
+    frame.cooldown:SetDrawEdge(true)
+    frame.cooldown:SetAlpha(config.cooldownAlpha)
+    frame.cooldown:SetScript("OnShow", function() frame.active = true end)
+    frame.cooldown:SetScript("OnHide", function() frame.active = false end)
+    
+    -- Создаем фрейм для текста кулдауна
+    frame.cooldownFrame = CreateFrame("Frame", nil, frame.frame)
+    frame.cooldownFrame:SetAllPoints(frame.frame)
+    frame.cooldownFrame:SetFrameStrata(config.frameStrata)
+    frame.cooldownFrame:SetFrameLevel(config.frameLevel + 2)
+
+    -- Создаем текстуру для иконки
+    frame.icon = frame.frame:CreateTexture(nil, "BACKGROUND")
+    frame.icon:SetAllPoints(frame.frame)
+        
+    -- Применяем настройки зума
+    if config.iconZoomed then
+        frame.icon:SetTexCoord(0.1, 0.9, 0.1, 0.9)
+    else
+        frame.icon:SetTexCoord(0, 1, 0, 1)
+    end
+
+    -- Создаем текстуру рамки
+    frame.icon.overlay = frame.cooldownFrame:CreateTexture(nil, "OVERLAY")
+    frame.icon.overlay:SetAllPoints(frame)
+    frame.icon.overlay:Hide()
+
+    -- Устанавливаем рамку если указана
+    if config.borderStyle and config.borderStyle ~= "None" then
+        frame.icon.overlay:SetTexture(config.borderStyle)
+        if config.borderColor then
+            local r, g, b, a = Gladdy:SetColor(config.borderColor)
+            frame.icon.overlay:SetVertexColor(r, g, b, a)
+        end
+        frame.icon.overlay:Show()
+    end
+    
+    -- Создаем текст кулдауна
+    frame.text = frame.cooldownFrame:CreateFontString(nil, "OVERLAY")
+    frame.text:SetFont(self:SMFetch("font", config.fontOption), 10, "OUTLINE")
+    frame.text:SetJustifyH("CENTER")
+    frame.text:SetPoint("CENTER")
+    frame.text:SetAlpha(config.fontAlpha)
+    frame.unit = config.unit
+    
+    -- Добавляем стандартный таймер обновления
+    if config.type == "aura" then
+        local specialSpells = config.specialSpells or {}
+        frame:SetScript("OnUpdate", function(self, elapsed)
+            if (self.active) then 
+                if (not config.interruptDetached and not config.detached and self.interruptFrame.priority and self.priority < self.interruptFrame.priority) then
+                    self.frame:SetAlpha(0.001)
+                else
+                    self.frame:SetAlpha(1)
+                end
+                
+                if self.timeLeft <= 0 then
+                    Gladdy.modules["Auras"]:AURA_FADE(self.unit, self.track, true)
+                else
+                    if specialSpells[self:GetSpellID()] then
+                        self.text:SetText("")
+                    else
+                        Gladdy:FormatTimer(self.text, self.timeLeft, self.timeLeft < 10)
+                    end
+                    self.timeLeft = self.timeLeft - elapsed
+                end
+            else
+                self.frame:SetAlpha(0.001)
+            end
+        end)
+    elseif config.type == "interrupt" then
+        frame:SetScript("OnUpdate", function(self, elapsed)
+            if (self.active) then
+                if (not config.interruptDetached and Gladdy.modules["Auras"].frames[self.unit].priority and self.priority <= Gladdy.modules["Auras"].frames[self.unit].priority) then
+                    self.frame:SetAlpha(0.001)
+                else
+                    self.frame:SetAlpha(1)
+                end
+                if (self.timeLeft <= 0) then
+                    self.active = false
+                    self.priority = nil
+                    self.spellSchool = nil
+                    self:StopCooldown()
+                    self.frame:SetAlpha(0.001)
+                else
+                    self.timeLeft = self.timeLeft - elapsed
+                    Gladdy:FormatTimer(self.text, self.timeLeft, self.timeLeft < 10)
+                end
+            else
+                self.priority = nil
+                self.spellSchool = nil
+                self.frame:SetAlpha(0.001)
+            end
+        end)
+    end
+    
+    -- Добавляем метод получения spellID
+    function frame:GetSpellID()
+        return self.spellID
+    end
+    
+    -- Добавляем метод обновления конфига
+    function frame:UpdateConfig(newConfig)
+
+        if newConfig.detached then
+            -- Обновляем настройки фрейма
+            self:SetFrameStrata(newConfig.frameStrata)
+            self:SetFrameLevel(newConfig.frameLevel)
+            -- Обновляем внутренний фрейм
+            self.frame:SetFrameStrata(newConfig.frameStrata)
+            self.frame:SetFrameLevel(newConfig.frameLevel)
+            -- Обновляем кулдаун
+            self.cooldown:SetFrameStrata(newConfig.frameStrata)
+            self.cooldown:SetFrameLevel(newConfig.frameLevel + 1)
+            self.cooldownFrame:SetFrameStrata(newConfig.frameStrata)
+            self.cooldownFrame:SetFrameLevel(newConfig.frameLevel + 2)
+        else
+            self:SetFrameStrata(Gladdy.db.auraFrameStrata)
+            self:SetFrameLevel(Gladdy.db.auraFrameLevel + 1)
+            self.frame:SetFrameStrata(Gladdy.db.auraFrameStrata)
+            self.frame:SetFrameLevel(Gladdy.db.auraFrameLevel + 1)
+            self.cooldown:SetFrameStrata(Gladdy.db.auraFrameStrata)
+            self.cooldown:SetFrameLevel(Gladdy.db.auraFrameLevel + 2)
+            self.cooldownFrame:SetFrameStrata(Gladdy.db.auraFrameStrata)
+            self.cooldownFrame:SetFrameLevel(Gladdy.db.auraFrameLevel + 3)
+        end
+        
+        -- Обрабатываем опцию отключения круга
+        if self.active then
+            if newConfig.disableCircle then
+                self.cooldown:SetAlpha(0)
+            else
+                self.cooldown:SetAlpha(newConfig.cooldownAlpha)
+            end
+        end
+        
+        -- Обрабатываем опцию включения шрифта
+        if newConfig.fontEnabled then
+            self.text:SetAlpha(newConfig.fontAlpha)
+        else
+            self.text:SetAlpha(0)
+            self.text:SetText("")
+        end
+        
+        -- Обновляем текстуру
+        if newConfig.iconZoomed then
+            self.icon:SetTexCoord(0.1, 0.9, 0.1, 0.9)
+        else
+            self.icon:SetTexCoord(0, 1, 0, 1)
+        end
+        
+        -- Обновляем рамку
+        self:UpdateBorder(newConfig.borderStyle, newConfig.borderColor)
+        
+        -- Сохраняем новый конфиг для использования в OnUpdate
+        config = newConfig
+    end
+    
+    function frame:StopCooldown()
+        if self.cooldown then
+            self.cooldown:SetCooldown(0, 0)
+            self.cooldown:Hide()
+        end
+
+        if self.cooldownFont then
+            self.cooldownFont:SetText("")
+        end
+    end
+    
+    function frame:SetIcon(texture)
+        if texture then
+            self.icon:SetTexture(texture)
+        else
+            self.icon:SetTexture("")
+        end
+    end
+    
+    function frame:UpdateBorder(borderStyle, borderColor)
+        if not borderStyle or borderStyle == "None" then
+            self.icon.overlay:Hide()
+        else
+            self.icon.overlay:SetTexture(borderStyle)
+            if borderColor then
+                local r, g, b, a = Gladdy:SetColor(borderColor)
+                self.icon.overlay:SetVertexColor(r, g, b, a)
+            end
+            self.icon.overlay:Show()
+        end
+    end
+    
+    return frame
+end

@@ -65,9 +65,6 @@ if Lib.gameExpansion == "wotlk" then
         [67890] = "incapacitate", -- Cobalt Frag Bomb (Frag Belt)
         [54466] = "incapacitate", -- Saronite Grenade
 
-        [375039] = "stun", --stun
-        [374994] = "stun", --stun
-        [375010] = "stun", --stun
         [47481] = "stun", -- Gnaw (Ghoul Pet)
         [5211]  = "stun", -- Bash (Rank 1)
         [6798]  = "stun", -- Bash (Rank 2)
@@ -118,6 +115,10 @@ if Lib.gameExpansion == "wotlk" then
         [25274] = "stun", -- Intercept Stun (Rank 5)
         [46968] = "stun", -- Shockwave
         [20549] = "stun", -- War Stomp (Racial)
+        -- sirus
+        [375039] = "stun",
+        [374994] = "stun",
+        [375010] = "stun",
 
         [16922]   = "random_stun",  -- Celestial Focus (Starfire Stun)
         [28445]   = "random_stun",  -- Improved Concussive Shot

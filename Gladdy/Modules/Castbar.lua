@@ -3,10 +3,10 @@ local select = select
 
 local CreateFrame = CreateFrame
 local GetSpellInfo = GetSpellInfo
-local UnitChannelInfo = C_UnitChannelInfo
-local UnitCastingInfo = C_UnitCastingInfo
+local UnitChannelInfo = UnitChannelInfo
+local UnitCastingInfo = UnitCastingInfo
 local GetTime = GetTime
-local CASTING_BAR_ALPHA_STEP = CASTING_BAR_ALPHA_STEP
+local CASTING_BAR_ALPHA_STEP = CASTING_BAR_ALPHA_STEP or 0.05
 local BackdropTemplateMixin = BackdropTemplateMixin
 
 ---------------------------
@@ -56,6 +56,27 @@ function Castbar:Initialize()
     end
 end
 
+function Castbar:UpdateFrameOnce()
+    if Gladdy.db.castBarEnabled then
+        self:RegisterMessage("UNIT_DEATH")
+        self:RegisterMessage("JOINED_ARENA")
+    else
+        self:UnregisterAllMessages()
+    end
+end
+
+function Castbar:Reset()
+    self.test = nil
+end
+
+function Castbar:ResetUnit(unit)
+    local castBar = self.frames[unit]
+    castBar:UnregisterAllEvents()
+    castBar:SetScript("OnEvent", nil)
+    castBar:SetScript("OnUpdate", nil)
+    castBar.fadeOut = nil
+    self:CAST_STOP(unit)
+end
 ---------------------------
 
 -- FRAME SETUP
@@ -82,7 +103,6 @@ function Castbar:CreateFrame(unit)
     castBar.bar:SetStatusBarTexture(Gladdy:SMFetch("statusbar", "castBarTexture"))
     castBar.bar:SetStatusBarColor(Gladdy:SetColor(Gladdy.db.castBarColor))
     castBar.bar:SetMinMaxValues(0, 100)
-    castBar.bar:SetFrameLevel(0)
     castBar.bar:SetFrameStrata(Gladdy.db.castBarFrameStrata)
     castBar.bar:SetFrameLevel(Gladdy.db.castBarFrameLevel)
 
@@ -103,9 +123,7 @@ function Castbar:CreateFrame(unit)
     castBar.icon:SetFrameStrata(Gladdy.db.castBarFrameStrata)
     castBar.icon:SetFrameLevel(Gladdy.db.castBarFrameLevel)
     castBar.icon.texture = castBar.icon:CreateTexture(nil, "BACKGROUND")
-    --castBar.icon.texture:SetMask("Interface\\AddOns\\Gladdy\\Images\\mask")
     castBar.icon.texture:SetAllPoints(castBar.icon)
-    castBar.icon.texture.masked = true
     castBar.icon.texture.overlay = castBar.icon:CreateTexture(nil, "BORDER")
     castBar.icon.texture.overlay:SetAllPoints(castBar.icon.texture)
     castBar.icon.texture.overlay:SetTexture(Gladdy.db.castBarIconStyle)
@@ -142,15 +160,6 @@ function Castbar:CreateFrame(unit)
     Gladdy.buttons[unit].castBar = castBar
     self.frames[unit] = castBar
     self:ResetUnit(unit)
-end
-
-function Castbar:UpdateFrameOnce()
-    if Gladdy.db.castBarEnabled then
-        self:RegisterMessage("UNIT_DEATH")
-        self:RegisterMessage("JOINED_ARENA")
-    else
-        self:UnregisterAllMessages()
-    end
 end
 
 function Castbar:UpdateFrame(unit)
@@ -196,21 +205,12 @@ function Castbar:UpdateFrame(unit)
     castBar.icon:SetHeight(Gladdy.db.castBarIconSize)
     castBar.icon.texture:SetAllPoints(castBar.icon)
     if Gladdy.db.castBarIconZoomed then
-        if castBar.icon.texture.masked then
-           -- castBar.icon.texture:SetMask("")
             castBar.icon.texture:SetTexCoord(0.1,0.9,0.1,0.9)
-            castBar.icon.texture.masked = nil
-        end
     else
-        if not castBar.icon.texture.masked then
-            --castBar.icon.texture:SetMask("")
-            castBar.icon.texture:SetTexCoord(0,1,0,1)
-           -- castBar.icon.texture:SetMask("Interface\\AddOns\\Gladdy\\Images\\mask")
-            castBar.icon.texture.masked = true
+            castBar.icon.texture:SetTexCoord(0, 1, 0, 1)
             if Gladdy.frame.testing then
                 testAgain = true
             end
-        end
     end
     castBar.icon:ClearAllPoints()
 
@@ -227,7 +227,7 @@ function Castbar:UpdateFrame(unit)
         leftMargin = Gladdy.db.castBarIconSize + 1
     end
 
-    Gladdy:SetPosition(castBar, unit, "castBarXOffset", "castBarYOffset", Castbar:LegacySetPosition(castBar, unit, leftMargin, rightMargin), Castbar)
+    Gladdy:SetPosition(castBar, unit, "castBarXOffset", "castBarYOffset", Castbar)
 
     castBar.spellText:SetFont(Gladdy:SMFetch("font", "castBarFont"), Gladdy.db.castBarFontSize, Gladdy.db.castBarFontOutline and "OUTLINE")
     castBar.spellText:SetTextColor(Gladdy:SetColor(Gladdy.db.castBarFontColor))
@@ -236,7 +236,14 @@ function Castbar:UpdateFrame(unit)
     castBar.timeText:SetTextColor(Gladdy:SetColor(Gladdy.db.castBarFontColor))
 
     castBar.icon.texture.overlay:SetTexture(Gladdy.db.castBarIconStyle)
-    castBar.icon.texture.overlay:SetVertexColor(Gladdy:SetColor(Gladdy.db.castBarIconColor))
+
+    if Gladdy.db.castBarIconStyle == "None" then
+        castBar.icon.texture.overlay:Hide()
+    else
+        local color = Gladdy.db.castBarIconColor
+        castBar.icon.texture.overlay:SetVertexColor(Gladdy:SetColor(color))
+        castBar.icon.texture.overlay:Show()
+    end
 
     if (unit == "arena1") then
         Gladdy:CreateMover(castBar, "castBarXOffset", "castBarYOffset", L["Cast Bar"],
@@ -315,8 +322,10 @@ end
 
 Castbar.CastEventsFunc = {}
 Castbar.CastEventsFunc["UNIT_SPELLCAST_START"] = function(castBar, event, ...)
-    local name, text, texture, startTime, endTime, isTradeSkill, castID, notInterruptible, spellId = UnitCastingInfo(castBar.unit)
-    if ( not name or (not castBar.showTradeSkills and isTradeSkill)) then
+
+    local spell, rank, displayName, texture, startTime, endTime, isTradeSkill, castID, interrupt = UnitCastingInfo(castBar.unit)
+
+    if ( not spell or (not castBar.showTradeSkills and isTradeSkill)) then
         castBar:SetAlpha(0)
         return
     end
@@ -324,6 +333,7 @@ Castbar.CastEventsFunc["UNIT_SPELLCAST_START"] = function(castBar, event, ...)
     if ( castBar.spark ) then
         castBar.spark:Show()
     end
+    
     castBar.value = (GetTime() - (startTime / 1000));
     castBar.maxValue = (endTime - startTime) / 1000;
     castBar.holdTime = 0
@@ -331,7 +341,7 @@ Castbar.CastEventsFunc["UNIT_SPELLCAST_START"] = function(castBar, event, ...)
     castBar.castID = castID
     castBar.channeling = nil
     castBar.fadeOut = nil
-    Castbar:CAST_START(castBar.unit, name, texture, castBar.value, castBar.maxValue)
+    Castbar:CAST_START(castBar.unit, spell, texture, castBar.value, castBar.maxValue, interrupt)
 end
 Castbar.CastEventsFunc["UNIT_SPELLCAST_SUCCEEDED"] = function(castBar, event, ...)
     if (castBar.casting and event == "UNIT_SPELLCAST_SUCCEEDED" and select(4, ...) == castBar.castID) then
@@ -399,7 +409,7 @@ end
 Castbar.CastEventsFunc["UNIT_SPELLCAST_INTERRUPTED"] = Castbar.CastEventsFunc["UNIT_SPELLCAST_FAILED"]
 Castbar.CastEventsFunc["UNIT_SPELLCAST_DELAYED"] = function(castBar, event, ...)
     if ( castBar:IsShown() ) then
-        local name, text, texture, startTime, endTime, isTradeSkill, castID = UnitCastingInfo(castBar.unit)
+        local name, _, text, texture, startTime, endTime, isTradeSkill, castID, notInterruptible = UnitCastingInfo(castBar.unit)
 
         if ( not name or (not castBar.showTradeSkills and isTradeSkill)) then
             -- if there is no name, there is no bar
@@ -418,40 +428,53 @@ Castbar.CastEventsFunc["UNIT_SPELLCAST_DELAYED"] = function(castBar, event, ...)
     end
 end
 Castbar.CastEventsFunc["UNIT_SPELLCAST_CHANNEL_START"] = function(castBar, event, ...)
-    local name, text, texture, startTime, endTime, isTradeSkill, notInterruptible, spellId = UnitChannelInfo(castBar.unit)
-    if ( not name or (not castBar.showTradeSkills and isTradeSkill)) then
+    local spell, rank, displayName, texture, startTime, endTime, isTradeSkill, interrupt = UnitChannelInfo(castBar.unit)
+    
+    if ( not spell or (not castBar.showTradeSkills and isTradeSkill)) then
         castBar:SetAlpha(0)
         return
     end
+
     if ( castBar.spark ) then
         castBar.spark:Show()
     end
+    
     castBar.value = (endTime / 1000) - GetTime()
     castBar.maxValue = (endTime - startTime) / 1000
+    
     castBar.holdTime = 0
     castBar.casting = nil
     castBar.channeling = true
     castBar.fadeOut = nil
-    Castbar:CAST_START(castBar.unit, name, texture, castBar.value, castBar.maxValue)
+    Castbar:CAST_START(castBar.unit, spell, texture, castBar.value, castBar.maxValue, interrupt)
 end
 Castbar.CastEventsFunc["UNIT_SPELLCAST_CHANNEL_UPDATE"] = function(castBar, event, ...)
     if ( castBar:IsShown() ) then
-        local name, text, texture, startTime, endTime, isTradeSkill = UnitChannelInfo(castBar.unit)
-        if ( not name or (not castBar.showTradeSkills and isTradeSkill)) then
+        local spell, rank, displayName, texture, startTime, endTime, isTradeSkill, interrupt = UnitChannelInfo(castBar.unit)
+        
+        if ( not spell or (not castBar.showTradeSkills and isTradeSkill)) then
             castBar:SetAlpha(0)
             return
         end
+        
         castBar.value = ((endTime / 1000) - GetTime())
         castBar.maxValue = (endTime - startTime) / 1000
-        Castbar:CAST_START(castBar.unit, name, texture, castBar.value, castBar.maxValue)
+        
+        Castbar:CAST_START(castBar.unit, spell, texture, castBar.value, castBar.maxValue, interrupt)
     end
 end
 
 function Castbar.OnEvent(self, event, ...)
     local unit = ...
+    
     if ( unit ~= self.unit ) then
         return
     end
+    
+    if not Castbar.CastEventsFunc[event] then
+        return
+    end
+    
     Castbar.CastEventsFunc[event](self, event, ...)
 end
 
@@ -468,7 +491,7 @@ function Castbar:CAST_START(unit, spell, icon, value, maxValue, notInterruptible
     end
 
     if notInterruptible then
-        castBar.bar:SetStatusBarColor(.8,.8,.8,1)
+        castBar.bar:SetStatusBarColor(Gladdy:SetColor({ r = 0.8, g = 0.8, b = 0.8, a = 1 }))
     else
         castBar.bar:SetStatusBarColor(Gladdy:SetColor(Gladdy.db.castBarColor))
     end
@@ -520,7 +543,8 @@ function Castbar:CAST_STOP(unit, ...)
         castBar.icon:Hide()
         castBar.shield:Hide()
     else
-        castBar.bar:SetStatusBarColor(...)
+        local r, g, b, a = ...
+        castBar.bar:SetStatusBarColor(Gladdy:SetColor({ r = r, g = g, b = b, a = a }))
     end
 end
 
@@ -535,35 +559,23 @@ function Castbar:JOINED_ARENA()
         for i=1, Gladdy.curBracket do
             local unit = "arena" .. i
             local castBar = self.frames[unit]
-            castBar:RegisterEvent("UNIT_SPELLCAST_INTERRUPTED")
-            castBar:RegisterEvent("UNIT_SPELLCAST_DELAYED")
-            castBar:RegisterEvent("UNIT_SPELLCAST_CHANNEL_START")
-            castBar:RegisterEvent("UNIT_SPELLCAST_CHANNEL_UPDATE")
-            castBar:RegisterEvent("UNIT_SPELLCAST_CHANNEL_STOP")
+            -- Используем RegisterUnitEvent для всех событий каста
+            castBar:RegisterUnitEvent("UNIT_SPELLCAST_INTERRUPTED", unit)
+            castBar:RegisterUnitEvent("UNIT_SPELLCAST_DELAYED", unit)
+            castBar:RegisterUnitEvent("UNIT_SPELLCAST_CHANNEL_START", unit)
+            castBar:RegisterUnitEvent("UNIT_SPELLCAST_CHANNEL_UPDATE", unit)
+            castBar:RegisterUnitEvent("UNIT_SPELLCAST_CHANNEL_STOP", unit)
             castBar:RegisterUnitEvent("UNIT_SPELLCAST_START", unit)
             castBar:RegisterUnitEvent("UNIT_SPELLCAST_STOP", unit)
             castBar:RegisterUnitEvent("UNIT_SPELLCAST_FAILED", unit)
             castBar:RegisterUnitEvent("UNIT_SPELLCAST_SUCCEEDED", unit)
+            
             castBar:SetScript("OnEvent", Castbar.OnEvent)
             castBar:SetScript("OnUpdate", Castbar.OnUpdate)
             castBar.fadeOut = nil
             self:CAST_STOP(unit)
-            --Castbar.OnEvent(castBar, "PLAYER_ENTERING_WORLD")
         end
     end
-end
-
-function Castbar:ResetUnit(unit)
-    local castBar = self.frames[unit]
-    castBar:UnregisterAllEvents()
-    castBar:SetScript("OnEvent", nil)
-    castBar:SetScript("OnUpdate", nil)
-    castBar.fadeOut = nil
-    self:CAST_STOP(unit)
-end
-
-function Castbar:Reset()
-    self.test = nil
 end
 
 ---------------------------
@@ -633,9 +645,9 @@ end
 
 function Castbar:GetOptions()
     return {
-        header = {
+        headerCastbar = {
             type = "header",
-            name = L["Cast Bar"],
+            name = L["Castbar"],
             order = 2,
         },
         castBarEnabled = option({
@@ -756,7 +768,7 @@ function Castbar:GetOptions()
                         castBarIconZoomed = Gladdy:option({
                             type = "toggle",
                             name = L["Zoomed Icon"],
-                            desc = L["Zoomes the icon to remove borders"],
+                            desc = L["Zooms the icon to remove borders"],
                             order = 3,
                             width = "full",
                         }),
@@ -945,41 +957,4 @@ function Castbar:GetOptions()
             },
         },
     }
-end
-
----------------------------
-
--- LAGACY HANDLER
-
----------------------------
-
-function Castbar:LegacySetPosition(castBar, unit, leftMargin, rightMargin)
-    if Gladdy.db.newLayout then
-        return Gladdy.db.newLayout
-    end
-    castBar:ClearAllPoints()
-    if Gladdy.db.castBarWidth <= 0 then
-        castBar:SetWidth(0.1)
-    end
-    if Gladdy.db.castBarHeight <= 0 then
-        castBar:SetHeight(0.1)
-    end
-    local horizontalMargin = (Gladdy.db.highlightInset and 0 or Gladdy.db.highlightBorderSize) + Gladdy.db.padding
-    if (Gladdy.db.castBarPos == "LEFT") then
-        local anchor = Gladdy:GetAnchor(unit, "LEFT")
-        if anchor == Gladdy.buttons[unit].healthBar then
-            castBar:SetPoint("RIGHT", anchor, "LEFT", -horizontalMargin - leftMargin + Gladdy.db.castBarXOffset, Gladdy.db.castBarYOffset)
-        else
-            castBar:SetPoint("RIGHT", anchor, "LEFT", -Gladdy.db.padding - leftMargin + Gladdy.db.castBarXOffset, Gladdy.db.castBarYOffset)
-        end
-    end
-    if (Gladdy.db.castBarPos == "RIGHT") then
-        local anchor = Gladdy:GetAnchor(unit, "RIGHT")
-        if anchor == Gladdy.buttons[unit].healthBar then
-            castBar:SetPoint("LEFT", anchor, "RIGHT", horizontalMargin + rightMargin + Gladdy.db.castBarXOffset, Gladdy.db.castBarYOffset)
-        else
-            castBar:SetPoint("LEFT", anchor, "RIGHT", Gladdy.db.padding + rightMargin + Gladdy.db.castBarXOffset, Gladdy.db.castBarYOffset)
-        end
-    end
-    return Gladdy.db.newLayout
 end

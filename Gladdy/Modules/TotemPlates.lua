@@ -237,7 +237,7 @@ function TotemPlates:NAME_PLATE_UNIT_ADDED(nameplate)
 
 		local totem = nameplate.gladdyTotemFrame
 		if ( totem ) then
-			local nameplateText = totem.nametext:GetText()
+			local nameplateText = string.lower(totem.nametext:GetText())
 			local totemData = totemNameTotemData[nameplateText]
 
 			if ( totemData ) then

@@ -40,7 +40,7 @@ exportEditBox:SetNumLines(29)
 exportEditBox:SetText("")
 exportEditBox:SetWidth(500)
 exportEditBox.button:Hide()
-exportEditBox.frame:SetClipsChildren(true)
+-- Удалено обращение к exportEditBox.frame, так как этот объект не существует
 export:AddChild(exportEditBox)
 export.eb = exportEditBox
 
@@ -60,7 +60,7 @@ importEditBox:SetNumLines(23)
 importEditBox:SetText("")
 importEditBox:SetWidth(500)
 importEditBox.button:Hide()
-importEditBox.frame:SetClipsChildren(true)
+-- Удалено обращение к importEditBox.frame, так как этот объект не существует
 import:AddChild(importEditBox)
 import.eb = importEditBox
 local importButton = AceGUI:Create("Button")
@@ -83,7 +83,7 @@ importClearButton:SetWidth(200)
 importClearButton:SetCallback("OnClick", function(widget)
     import.eb:SetText("")
     import.eb:SetFocus()
-    import.button.frame:Disable()
+    import.button:SetDisabled(true)
     import:SetStatusText("Invalid Import String")
     import.statustext:SetTextColor(1,0,0)
 end)
@@ -213,7 +213,7 @@ function ExportImport:GetOptions()
                 import.eb:SetText("")
                 import:Show()
                 import:SetStatusText("Invalid Import String")
-                import.button.frame:Disable()
+                import.button:SetDisabled(true)
                 import.statustext:SetTextColor(1,0,0)
                 import.eb:SetFocus()
                 import.eb:SetCallback("OnTextChanged", function(widget)
@@ -223,7 +223,7 @@ function ExportImport:GetOptions()
                     end
                     import.statustext:SetTextColor(0,1,0)
                     import:SetStatusText("SUCCESS")
-                    import.button.frame:Enable()
+                    import.button:SetDisabled(false)
                     import.deserializedTable = deserialized
                 end)
             end,
@@ -273,7 +273,7 @@ function ExportImport:Decode(str, showError)
         if showError then
             import.statustext:SetTextColor(1,0,0)
             import:SetStatusText("Invalid Import String FAILED LibDeflate:DecodeForPrint")
-            import.button.frame:Disable()
+            import.button:SetDisabled(true)
         end
         return nil
     end
@@ -282,7 +282,7 @@ function ExportImport:Decode(str, showError)
         if showError then
             import.statustext:SetTextColor(1,0,0)
             import:SetStatusText("Invalid Import String FAILED LibDeflate:DecompressZlib")
-            import.button.frame:Disable()
+            import.button:SetDisabled(true)
         end
         return nil
     end
@@ -291,7 +291,7 @@ function ExportImport:Decode(str, showError)
         if showError then
             import.statustext:SetTextColor(1,0,0)
             import:SetStatusText("Invalid Import String FAILED AceSerializer:Deserialize")
-            import.button.frame:Disable()
+            import.button:SetDisabled(true)
         end
         return nil
     end
@@ -300,7 +300,7 @@ function ExportImport:Decode(str, showError)
         if showError then
             import.statustext:SetTextColor(1,0,0)
             import:SetStatusText(error)
-            import.button.frame:Disable()
+            import.button:SetDisabled(true)
         end
         return nil
     end

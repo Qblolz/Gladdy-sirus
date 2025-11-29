@@ -8,11 +8,23 @@ local SendChatMessage = SendChatMessage
 local RaidNotice_AddMessage = RaidNotice_AddMessage
 local RaidBossEmoteFrame = RaidBossEmoteFrame
 local IsAddOnLoaded = IsAddOnLoaded
-local IsInGroup = _IsInGroup
-local LE_PARTY_CATEGORY_HOME = LE_PARTY_CATEGORY_HOME
-local LE_PARTY_CATEGORY_INSTANCE = LE_PARTY_CATEGORY_INSTANCE
+local GetNumPartyMembers = GetNumPartyMembers
+local GetNumRaidMembers = GetNumRaidMembers
 local CombatText_AddMessage = CombatText_AddMessage
 local UnitName = UnitName
+
+-- Add compatibility functions for WoW 3.3.5
+local function IsInGroup()
+    return GetNumPartyMembers() > 0 or GetNumRaidMembers() > 0
+end
+
+local function IsInRaid()
+    return GetNumRaidMembers() > 0
+end
+
+-- Create constants that don't exist in 3.3.5
+local LE_PARTY_CATEGORY_HOME = 1
+local LE_PARTY_CATEGORY_INSTANCE = 2
 
 local Gladdy = LibStub("Gladdy")
 local L = Gladdy.L
@@ -43,21 +55,20 @@ function Announcements:Initialize()
     }
 
     self:RegisterMessage("JOINED_ARENA")
+    self:RegisterMessage("CAST_START")
+    self:RegisterMessage("ENEMY_SPOTTED")
+    self:RegisterMessage("UNIT_SPEC")
+    self:RegisterMessage("AURA_GAIN")
+    self:RegisterMessage("UNIT_HEALTH")
+    self:RegisterMessage("TRINKET_USED")
+    self:RegisterMessage("TRINKET_READY")
+    self:RegisterMessage("SHADOWSIGHT")
+    self:RegisterMessage("SPELL_INTERRUPT")
 end
 
 function Announcements:Reset()
-    self:UnregisterMessages(
-            "CAST_START",
-            "ENEMY_SPOTTED",
-            "UNIT_SPEC",
-            "AURA_GAIN",
-            "UNIT_HEALTH",
-            "TRINKET_USED",
-            "TRINKET_READY",
-            "SHADOWSIGHT",
-            "SPELL_INTERRUPT")
-    self.enemy = {}
-    self.throttled = {}
+    self:UnregisterAllMessages()
+    self:Initialize()
 end
 
 function Announcements:Test(unit)
@@ -72,30 +83,23 @@ function Announcements:Test(unit)
 end
 
 function Announcements:JOINED_ARENA()
-    self:RegisterMessages(
-            "CAST_START",
-            "ENEMY_SPOTTED",
-            "UNIT_SPEC",
-            "AURA_GAIN",
-            "UNIT_HEALTH",
-            "TRINKET_USED",
-            "TRINKET_READY",
-            "SHADOWSIGHT",
-            "SPELL_INTERRUPT")
+    -- Обработка входа на арену
 end
 
-function Announcements:CAST_START(unit, spell)
+function Announcements:CAST_START(unit, spellName)
+    -- Обработка начала каста
     local button = Gladdy.buttons[unit]
     if (not button or not Gladdy.db.announcements.resurrections) then
         return
     end
 
-    if (self.RES_SPELLS[spell]) then
+    if (self.RES_SPELLS[spellName]) then
         self:Send(L["RESURRECTING: %s (%s)"]:format(button.name, button.classLoc), 3, RAID_CLASS_COLORS[button.class], unit)
     end
 end
 
 function Announcements:ENEMY_SPOTTED(unit)
+    -- Обработка обнаружения противника
     local button = Gladdy.buttons[unit]
     if (not button or not Gladdy.db.announcements.enemy) then
         return
@@ -111,6 +115,7 @@ function Announcements:ENEMY_SPOTTED(unit)
 end
 
 function Announcements:UNIT_SPEC(unit, spec)
+    -- Обработка определения спеков
     local button = Gladdy.buttons[unit]
     if (not button or not Gladdy.db.announcements.spec) then
         return
@@ -121,19 +126,21 @@ function Announcements:UNIT_SPEC(unit, spec)
     self:Send(L["SPEC DETECTED: %s - %s (%s)"]:format(button.name, spec, button.classLoc), 1, RAID_CLASS_COLORS[button.class], unit)
 end
 
-function Announcements:UNIT_HEALTH(unit, health, healthMax)
+function Announcements:UNIT_HEALTH(unit, health)
+    -- Обработка изменения здоровья
     local button = Gladdy.buttons[unit]
     if (not button or not Gladdy.db.announcements.health) then
         return
     end
 
-    local healthPercent = floor(health * 100 / healthMax)
+    local healthPercent = floor(health * 100 / button.healthMax)
     if (healthPercent < Gladdy.db.announcements.healthThreshold) then
         self:Send(L["LOW HEALTH: %s (%s)"]:format(button.name, button.classLoc), 10, RAID_CLASS_COLORS[button.class], unit)
     end
 end
 
 function Announcements:TRINKET_USED(unit)
+    -- Обработка использования тринкета
     local button = Gladdy.buttons[unit]
     if (not button or not Gladdy.db.announcements.trinketUsed) then
         return
@@ -143,6 +150,7 @@ function Announcements:TRINKET_USED(unit)
 end
 
 function Announcements:TRINKET_READY(unit)
+    -- Обработка готовности тринкета
     local button = Gladdy.buttons[unit]
     if (not button or not Gladdy.db.announcements.trinketReady) then
         return
@@ -151,7 +159,8 @@ function Announcements:TRINKET_READY(unit)
     self:Send(L["TRINKET READY: %s (%s)"]:format(button.name, button.classLoc), 1, RAID_CLASS_COLORS[button.class], unit)
 end
 
-function Announcements:SPELL_INTERRUPT(unit,spellID,spellName,spellSchool,extraSpellId,extraSpellName,extraSpellSchool)
+function Announcements:SPELL_INTERRUPT(unit, spellID, spellName, spellSchool, extraSpellId, extraSpellName, extraSpellSchool)
+    -- Обработка прерывания заклинания
     local button = Gladdy.buttons[unit]
     if (not button or not Gladdy.db.announcements.spellInterrupt) then
         return
@@ -159,7 +168,8 @@ function Announcements:SPELL_INTERRUPT(unit,spellID,spellName,spellSchool,extraS
     self:Send(L["INTERRUPTED: %s (%s)"]:format(extraSpellName, button.name or ""), nil, RAID_CLASS_COLORS[button.class], unit)
 end
 
-function Announcements:AURA_GAIN(unit, auraType, spellID, spellName)
+function Announcements:AURA_GAIN(unit, auraType, spellID, spellName, texture, duration, expirationTime, count, dispelType, index, unitCaster)
+    -- Обработка получения ауры
     local button = Gladdy.buttons[unit]
     if (not button or not Gladdy.db.announcements.drinks) then
         return
@@ -170,8 +180,12 @@ function Announcements:AURA_GAIN(unit, auraType, spellID, spellName)
     end
 end
 
-function Announcements:SHADOWSIGHT(msg)
-    self:Send(msg, 2)
+function Announcements:SHADOWSIGHT()
+    if not Gladdy.db.announcements.shadowsight then
+        return
+    end
+    -- Обработка теневого зрения
+    self:Send(L["Shadowsight Buff active!"], 2)
 end
 
 function Announcements:Send(msg, throttle, color, unit)
@@ -194,10 +208,14 @@ function Announcements:Send(msg, throttle, color, unit)
 
     if (dest == "self") then
         Gladdy:Print(msg)
-    elseif (dest == "party" and IsInGroup(LE_PARTY_CATEGORY_HOME)) then --(GetNumSubgroupMembers() > 0 or GetNumGroupMembers() > 0)) then
-        SendChatMessage(msg, "PARTY")
-    elseif dest == "party" and IsInGroup(LE_PARTY_CATEGORY_INSTANCE) then
-        SendChatMessage(msg, "INSTANCE_CHAT")
+    elseif (dest == "party" and IsInGroup()) then
+        -- In WoW 3.3.5, there's no distinction between home/instance chat
+        -- Just use the appropriate channel based on group type
+        if IsInRaid() then
+            SendChatMessage(msg, "RAID")
+        else
+            SendChatMessage(msg, "PARTY")
+        end
     elseif (dest == "rw") then
         RaidNotice_AddMessage(RaidBossEmoteFrame, msg, color)
     elseif (dest == "fct" and IsAddOnLoaded("Blizzard_CombatText")) then
@@ -250,59 +268,65 @@ function Announcements:GetOptions()
             name = L["Announcements"],
             order = 2,
         },
+        shadowsight = option({
+            type = "toggle",
+            name = L["Shadowsight"],
+            desc = L["Announces when Shadowsight buff is active"],
+            order = 3,
+        }),
         trinketUsed = option({
             type = "toggle",
             name = L["Trinket used"],
             desc = L["Announce when an enemy's trinket is used"],
-            order = 3,
+            order = 4,
         }),
         trinketReady = option({
             type = "toggle",
             name = L["Trinket ready"],
             desc = L["Announce when an enemy's trinket is ready again"],
-            order = 4,
+            order = 5,
         }),
         spellInterrupt = option({
             type = "toggle",
             name = L["Interrupts"],
             desc = L["Announces when enemies' spells are interrupted"],
-            order = 5,
+            order = 6,
         }),
         drinks = option({
             type = "toggle",
             name = L["Drinking"],
             desc = L["Announces when enemies sit down to drink"],
-            order = 6,
+            order = 7,
         }),
         resurrections = option({
             type = "toggle",
             name = L["Resurrection"],
             desc = L["Announces when an enemy tries to resurrect a teammate"],
-            order = 7,
+            order = 8,
         }),
         enemy = option({
             type = "toggle",
             name = L["New enemies"],
             desc = L["Announces when new enemies are discovered"],
-            order = 8,
+            order = 9,
         }),
         spec = option({
             type = "toggle",
             name = L["Spec Detection"],
             desc = L["Announces when the spec of an enemy was detected"],
-            order = 9,
+            order = 10,
         }),
         health = option({
             type = "toggle",
             name = L["Low health"],
             desc = L["Announces when an enemy drops below a certain health threshold"],
-            order = 10,
+            order = 11,
         }),
         healthThreshold = option({
             type = "range",
             name = L["Low health threshold"],
             desc = L["Choose how low an enemy must be before low health is announced"],
-            order = 11,
+            order = 12,
             min = 1,
             max = 100,
             step = 1,
@@ -314,7 +338,7 @@ function Announcements:GetOptions()
             type = "select",
             name = L["Destination"],
             desc = L["Choose how your announcements are displayed"],
-            order = 12,
+            order = 13,
             values = destValues,
         }),
     }

@@ -91,10 +91,10 @@ end
 
 function ACDFrame:CreateTicker(countdown)
     self.countdown = countdown
-    if self.ticker and not self.ticker:IsCancelled() then
-        self.ticker:Cancel()
+    if self.ticker then
+        Gladdy:CancelTimer(self.ticker)
     end
-    self.ticker = C_Timer:NewTicker(1, ACDFrame.Ticker)
+    self.ticker = Gladdy:ScheduleRepeatingTimer(ACDFrame.Ticker, 1)
 end
 
 function ACDFrame.Ticker()
@@ -140,8 +140,9 @@ function ACDFrame:JOINED_ARENA()
 end
 
 function ACDFrame:Reset()
-    if self.ticker and not self.ticker:IsCancelled() then
-        self.ticker:Cancel()
+    if self.ticker then
+        Gladdy:CancelTimer(self.ticker)
+        self.ticker = nil
     end
     self.countdown = nil
     self:UnregisterEvent("CHAT_MSG_BG_SYSTEM_NEUTRAL")
