@@ -28,6 +28,7 @@ local classSpells = {
     ["WARRIOR"] = 25275,
     ["HUNTER"] = 27018,
     ["ROGUE"] = 36554,
+    ["DEATHKNIGHT"] = 49576,
 }
 
 local function defaultSpells()
