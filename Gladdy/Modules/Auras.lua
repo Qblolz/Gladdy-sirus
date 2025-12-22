@@ -149,7 +149,7 @@ function Auras:UpdateFrame(unit)
 		width, height = Gladdy.db.auraSize * Gladdy.db.auraWidthFactor, Gladdy.db.auraSize
 
 		auraFrame:ClearAllPoints()
-		Gladdy:SetPosition(auraFrame, unit, "auraXOffset", "auraYOffset", true, Auras)
+		Gladdy:SetPosition(auraFrame, unit, "auraXOffset", "auraYOffset", Auras)
 
 		if (Gladdy.db.auraGroup) then
 			if (unit ~= "arena1") then
@@ -272,7 +272,7 @@ function Auras:UpdateInterruptFrame(unit)
 		width, height = Gladdy.db.auraInterruptSize * Gladdy.db.auraInterruptWidthFactor, Gladdy.db.auraInterruptSize
 
 		interruptFrame:ClearAllPoints()
-		Gladdy:SetPosition(interruptFrame, unit, "auraInterruptXOffset", "auraInterruptYOffset", true, Auras)
+		Gladdy:SetPosition(interruptFrame, unit, "auraInterruptXOffset", "auraInterruptYOffset", Auras)
 
 		if (Gladdy.db.auraInterruptGroup) then
 			if (unit ~= "arena1") then
