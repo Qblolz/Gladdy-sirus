@@ -154,7 +154,7 @@ function EventListener:COMBAT_LOG_EVENT_UNFILTERED(...)
 
 	-- Выводим дебаг только для интересующих нас событий
 	if debugEvents[eventType] then
-		Gladdy:Debug("INFO", "COMBAT_LOG_EVENT_UNFILTERED", 
+		Gladdy:Debug("INFO", "COMBAT_LOG_EVENT_UNFILTERED",
 			"Event:", eventType,
 			"Source:", sourceName or "nil",
 			"Dest:", destName or "nil",
@@ -276,12 +276,12 @@ end
 
 function EventListener:ARENA_OPPONENT_UPDATE(unit, updateReason)
 	--Gladdy:Debug("INFO", "ARENA_OPPONENT_UPDATE", "Raw unit:", unit, "updateReason:", updateReason)
-	
+
 	unit = Gladdy:GetArenaUnit(unit)
 	if not unit then
 		Gladdy:Debug("WARN", "ARENA_OPPONENT_UPDATE", "Invalid unit after GetArenaUnit")
 	end
-	
+
 	local button = Gladdy.buttons[unit]
 	if not button then
 		Gladdy:Debug("WARN", "ARENA_OPPONENT_UPDATE", "No button for unit:", unit)
@@ -291,14 +291,14 @@ function EventListener:ARENA_OPPONENT_UPDATE(unit, updateReason)
 	if not pet then
 		Gladdy:Debug("WARN", "ARENA_OPPONENT_UPDATE", "No pet for unit:", unit)
 	end
-	
+
 	--Gladdy:Debug("INFO", "ARENA_OPPONENT_UPDATE", "Processing unit:", unit)
 	--Gladdy:Debug("INFO", "ARENA_OPPONENT_UPDATE", "- exists:", UnitExists(unit))
 	--Gladdy:Debug("INFO", "ARENA_OPPONENT_UPDATE", "- isVisible:", UnitIsVisible(unit))
 	--Gladdy:Debug("INFO", "ARENA_OPPONENT_UPDATE", "- canAttack:", UnitCanAttack("player", unit))
 	--Gladdy:Debug("INFO", "ARENA_OPPONENT_UPDATE", "- current class:", button.class)
 	--Gladdy:Debug("INFO", "ARENA_OPPONENT_UPDATE", "- current race:", button.race)
-	
+
 	if button or pet then
 		if updateReason == "seen" then
 			-- ENEMY_SPOTTED
@@ -547,7 +547,7 @@ end
 function EventListener:DetectSpec(unit, spec)
 	local button = Gladdy.buttons[unit]
 	if (not button or not spec or button.spec) then return end
-	
+    spec = L[spec]
 	-- Проверка валидности спеков для каждого класса
 	if button.class == "PALADIN" and not Gladdy:contains(spec, {L["Holy"], L["Retribution"], L["Protection"]}) or
 	   button.class == "SHAMAN" and not Gladdy:contains(spec, {L["Restoration"], L["Enhancement"], L["Elemental"]}) or
