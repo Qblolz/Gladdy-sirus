@@ -353,7 +353,7 @@ function Healthbar:ENEMY_SPOTTED(unit)
         
         -- Если значения не получены, пробуем еще раз через небольшую задержку
         if not health or not healthMax or health == 0 or healthMax == 0 then
-            Gladdy:After(0.1, function()
+            C_Timer:After(0.1, function()
                 self:ENEMY_SPOTTED(unit)
             end)
             return
